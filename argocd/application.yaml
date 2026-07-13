@@ -6,8 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    # replace with this repo's URL once pushed to your company GitHub org
-    repoURL: https://github.com/<your-org>/stagecraft-platform.git
+    # final repo will be under UST-PACE - fill in once it's actually pushed there
+    # repoURL: https://github.com/UST-PACE/stagecraft-platform.git
     targetRevision: main
     path: helm
     helm:
