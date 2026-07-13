@@ -14,14 +14,10 @@ service:
   port: 80
   targetPort: 3000
 
-# No AWS IAM needs — the frontend never calls an AWS API directly.
 serviceAccount:
   create: true
   roleArn: ""
 
-# Populates the stagecraft-frontend-secrets Kubernetes Secret from AWS Secrets
-# Manager via the External Secrets Operator (see the umbrella chart's
-# clustersecretstore.yaml).
 externalSecret:
   enabled: true
   storeName: stagecraft
@@ -30,13 +26,7 @@ externalSecret:
 
 env:
   NODE_ENV: production
-  # Empty string = relative URLs — frontend and API share one ALB domain via
-  # path-based routing, so /api/v1/... resolves to the api service alongside it.
   NEXT_PUBLIC_API_URL: ""
-  # No trailing slash — the frontend builds `${API_URL_INTERNAL}/api/v1/...`,
-  # and a trailing slash here produces a double slash (//api/v1/...) that the
-  # backend 404s, silently breaking server-side auth checks (the dashboard
-  # layout's /auth/me call) so no logged-in page ever renders.
   API_URL_INTERNAL: http://stagecraft-api
 
 livenessProbe:

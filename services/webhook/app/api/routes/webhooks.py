@@ -16,10 +16,6 @@ _publisher = SQSPublisher()
 _MANIFEST_ECOSYSTEM = {"package.json": "npm", "requirements.txt": "pip", "go.mod": "go"}
 
 def _parse_trivy_alert_text(text: str) -> dict:
-    """Trivy's SARIF message text for dependency findings is structured, e.g.:
-    'Package: python-dotenv\\nInstalled Version: 1.0.1\\n...\\nFixed Version: 1.2.2\\n...'
-    Extract package_name/fixed_version so these alerts are actionable the same
-    way native Dependabot alerts are, instead of being stuck as RCA-only."""
     package = re.search(r"^Package:\s*(.+)$", text, re.MULTILINE)
     fixed = re.search(r"^Fixed Version:\s*(.+)$", text, re.MULTILINE)
     return {

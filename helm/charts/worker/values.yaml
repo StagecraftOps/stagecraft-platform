@@ -6,10 +6,6 @@ image:
   tag: latest
   pullPolicy: Always
 
-# A ClusterIP Service on the health-server port so the api can reach the
-# celery worker's /internal/investigate endpoint (Pipeline Chat's AI path) at
-# stagecraft-worker.<ns>.svc.cluster.local:8080. Selects the worker deployment
-# (componentSuffix ""), not the consumer.
 service:
   enabled: true
   port: 8080
@@ -19,10 +15,6 @@ serviceAccount:
   create: true
   roleArn: ""
 
-# Populates the stagecraft-worker-secrets Kubernetes Secret from AWS Secrets
-# Manager via the External Secrets Operator (see the umbrella chart's
-# clustersecretstore.yaml). Shared by both the worker and consumer Deployments
-# below — they use the same ServiceAccount and the same secret name.
 externalSecret:
   enabled: true
   storeName: stagecraft
@@ -37,7 +29,6 @@ env:
   USE_MCP_TOOLS: "true"
   FRONTEND_URL: https://stagecraft.example.com
 
-# The Celery worker process — picks up tasks from Redis, runs the agent fleet.
 worker:
   replicaCount: 2
   command: []
@@ -62,7 +53,6 @@ worker:
       cpu: "1"
       memory: 1Gi
 
-# The SQS -> Celery bridge process — same image, different entrypoint.
 consumer:
   replicaCount: 1
   command: ["python", "-m", "app.sqs_consumer"]

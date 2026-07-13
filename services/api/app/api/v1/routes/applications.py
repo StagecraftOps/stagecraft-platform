@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Domain tables whose application_id we keep in sync with repo membership.
 _SYNCED_TABLES = [
     "workflow_runs",
     "remediations",
@@ -78,16 +77,12 @@ async def _owned_application(
 async def _sync_membership(
     db: AsyncSession, org_login: str, application_id: uuid.UUID, repo_names: list[str]
 ) -> None:
-    """Replace the app's repo set, and keep application_id on domain rows in sync:
-    clear this app's id from rows no longer in the set, then stamp it on rows in the set."""
-    # Clear application_id from all domain rows currently tagged with this app.
     for table in _SYNCED_TABLES:
         await db.execute(
             text(f"UPDATE {table} SET application_id = NULL WHERE application_id = :app"),
             {"app": str(application_id)},
         )
 
-    # Rebuild the membership rows.
     await db.execute(
         text("DELETE FROM application_repos WHERE application_id = :app"),
         {"app": str(application_id)},
@@ -116,7 +111,6 @@ async def _sync_membership(
                 "repo": repo,
             },
         )
-        # Stamp application_id onto existing + historical domain rows for this repo.
         for table in _SYNCED_TABLES:
             await db.execute(
                 text(
@@ -224,7 +218,6 @@ async def delete_application(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     app = await _owned_application(org_login, application_id, user, db)
-    # Clear application_id from domain rows before removing the app.
     for table in _SYNCED_TABLES:
         await db.execute(
             text(f"UPDATE {table} SET application_id = NULL WHERE application_id = :app"),

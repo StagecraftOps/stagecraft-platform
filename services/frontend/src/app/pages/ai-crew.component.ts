@@ -22,8 +22,6 @@ interface AgentMeta {
   fragment?: string
 }
 
-// System agents run inside StageCraft. Custom agents are (or will be) published into
-// the customer's GitHub repos.
 const ROSTER: AgentMeta[] = [
   { key: 'failure_rca', label: 'Self-Healing RCA', blurb: 'Classifies pipeline failures and proposes a fix PR.', icon: Wrench, category: 'Remediation', kind: 'system', live: true, href: '/remediation' },
   { key: 'peer_review', label: 'PR Traces', blurb: 'Reviews PRs for removed gates, secrets, broad permissions.', icon: GitPullRequest, category: 'Review', kind: 'system', live: true, href: '/pr-reviews' },

@@ -1,10 +1,3 @@
-{{/*
-Shares one ALB with stagecraft-frontend via the group.name annotation. Claims
-exactly /api/v1 (the REST API) and /ws (websockets) — NOT all of /api, because
-the frontend serves its own Next.js routes under /api/auth/* and /api/health
-that must fall through to the frontend catch-all. Frontend is built with
-NEXT_PUBLIC_API_URL="" so it calls /api/v1/... as relative URLs on this domain.
-*/}}
 {{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress

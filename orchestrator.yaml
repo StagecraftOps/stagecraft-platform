@@ -1,5 +1,3 @@
-# service dependency graph for CI orchestration
-# schema: services: <name> -> {depends_on: [<name>, ...]}
 services:
   webhook: {}
   api: {}

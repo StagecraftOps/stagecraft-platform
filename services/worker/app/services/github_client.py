@@ -229,10 +229,6 @@ class GitHubRemediationClient:
         return results.get("items", []) if isinstance(results, dict) else []
 
     def find_issue_by_marker(self, owner: str, repo: str, marker: str) -> dict | None:
-        # The /search/issues endpoint returns 403 for GitHub App installation
-        # tokens (search has separate, stricter auth requirements than the
-        # regular REST API). List issues instead and scan bodies client-side --
-        # capped at a few pages since this is a dedup check, not a full audit.
         for page in range(1, 4):
             issues = self._get(
                 f"/repos/{owner}/{repo}/issues",

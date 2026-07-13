@@ -65,8 +65,6 @@ async def list_org_repos(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """List every repo the installation can see, plus which ones are
-    currently marked active for analysis (the 'Select Scope' wizard step)."""
     org = await _get_owned_org(org_login, user, db)
 
     token = await get_installation_token_for_org(org_login)
@@ -104,8 +102,6 @@ async def set_org_repo_scope(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Persist the user's repo selection, then kick off (background) estate
-    discovery scoped to only those repos."""
     org = await _get_owned_org(org_login, user, db)
 
     await db.execute(

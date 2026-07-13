@@ -34,10 +34,6 @@ _LONG_JOB_WARNING_SECONDS = 900
 _LONG_JOB_CRITICAL_SECONDS = 3600
 
 def _classify_severity(page: str, metrics: dict) -> str:
-    """Deterministic severity band for the metrics already computed for this
-    page -- never LLM-decided, matches this codebase's pattern of
-    deterministic classification + LLM narrative-only (see remediation/
-    optimization severity fields)."""
     if page == "insights":
         by_sev = metrics.get("open_vulns_by_severity") or {}
         failure_rate = metrics.get("failure_rate") or 0

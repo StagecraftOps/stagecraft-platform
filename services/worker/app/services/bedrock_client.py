@@ -381,10 +381,6 @@ In 3-4 sentences, explain what this finding means in practice for this applicati
         system_prompt: str | None,
         skill_context: str,
     ) -> dict:
-        """Used by the Vulnerability Remediation custom agent: decides whether to
-        proceed with a dependency-ordered fix PR (honoring any user-authored
-        skill-file constraints) and writes the PR title/body. system_prompt and
-        skill_context both come from the user-editable CustomAgentConfig."""
         default_system = (
             "You are the Vulnerability Remediation agent for StageCraft, a CI/CD governance "
             "platform. You raise dependency-ordered fix PRs for vulnerable packages. Respect "

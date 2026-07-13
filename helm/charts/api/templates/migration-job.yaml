@@ -1,12 +1,3 @@
-{{/*
-Runs `alembic upgrade head` to completion before the new Deployment rolls
-out — see the note in stagecraft-api/app/main.py's lifespan(): schema
-changes happen exactly once here, not via create_all() racing across pods.
-
-Depends on this chart's own ServiceAccount/ConfigMap/ExternalSecret, which
-are also hooked (see common.serviceAccount etc.) at a lower hook-weight so
-they're guaranteed to exist first — on both fresh installs and upgrades.
-*/}}
 {{- if .Values.migration.enabled }}
 apiVersion: batch/v1
 kind: Job
@@ -20,12 +11,6 @@ metadata:
     "helm.sh/hook-weight": "0"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
-  # ESO needs a few seconds after the ExternalSecret hook creates its CR to
-  # actually sync the k8s Secret — Helm doesn't wait on custom-resource
-  # readiness, only on hook ordering, so the first attempt or two commonly
-  # runs before DATABASE_URL exists. Each retry gets a genuinely fresh
-  # envFrom resolution (new pod), so Kubernetes' own exponential backoff
-  # between attempts (10s/20s/40s/80s...) is what actually closes this gap.
   backoffLimit: 6
   template:
     metadata:

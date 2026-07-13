@@ -1,9 +1,3 @@
-{{/*
-Catch-all "/" rule on the same ALB group as stagecraft-api's "/api" and
-stagecraft-webhook's "/webhooks" rules. group.order here (30) must stay the
-highest of the group so both more-specific paths are evaluated first and this
-only catches everything else.
-*/}}
 {{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress

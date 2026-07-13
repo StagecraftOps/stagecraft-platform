@@ -18,9 +18,6 @@ serviceAccount:
   create: true
   roleArn: ""
 
-# Populates the stagecraft-webhook-secrets Kubernetes Secret from AWS Secrets
-# Manager via the External Secrets Operator (see the umbrella chart's
-# clustersecretstore.yaml).
 externalSecret:
   enabled: true
   storeName: stagecraft

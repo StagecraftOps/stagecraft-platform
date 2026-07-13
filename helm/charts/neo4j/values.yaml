@@ -6,12 +6,7 @@ image:
   tag: "5.24-community"
   pullPolicy: IfNotPresent
 
-# Community Edition can't cluster — replicas is deliberately not a values
-# knob (hardcoded to 1 in statefulset.yaml) so nobody scales this up and
-# gets split-brain.
 
-# Bolt (7687) only, ClusterIP-only — no port 7474 (HTTP/Browser). Interactive
-# queries go through `kubectl exec ... cypher-shell`, not a browser.
 service:
   enabled: true
   port: 7687
@@ -19,11 +14,8 @@ service:
 
 serviceAccount:
   create: true
-  roleArn: "" # no AWS IAM needs — Neo4j itself never calls AWS APIs
+  roleArn: ""
 
-# Populates the stagecraft-neo4j-secrets Kubernetes Secret (NEO4J_AUTH) from
-# AWS Secrets Manager via the External Secrets Operator. api/worker get their
-# own NEO4J_URI/USER/PASSWORD via their own existing secrets, not this one.
 externalSecret:
   enabled: true
   storeName: stagecraft
@@ -37,7 +29,7 @@ persistence:
 env:
   NEO4J_dbms_memory_heap_max__size: 768m
   NEO4J_dbms_memory_pagecache_size: 512m
-  NEO4J_PLUGINS: "[]" # core Cypher only — no APOC, smaller surface area
+  NEO4J_PLUGINS: "[]"
   NEO4J_dbms_default__listen__address: "0.0.0.0"
 
 resources:

@@ -7,10 +7,6 @@ import type { Application } from './types'
 const ORG_KEY = 'stagecraft.currentOrg'
 const APP_KEY = 'stagecraft.currentApp'
 
-// Holds the currently-selected application and its CRUD. Deliberately depends
-// ONLY on HttpClient (not OrgService/ApiService) so ApiService can inject it to
-// auto-scope requests without creating a DI cycle. Current org is read from the
-// same localStorage key OrgService persists to.
 @Injectable({ providedIn: 'root' })
 export class ApplicationService {
   applications = signal<Application[]>([])
@@ -19,7 +15,6 @@ export class ApplicationService {
   )
   isLoading = signal(false)
 
-  // '' means "All applications" (org-wide, no filter).
   currentApplicationId = computed(() => {
     const list = this.applications()
     const sel = this.selectedId()
@@ -63,7 +58,6 @@ export class ApplicationService {
   setApplication(id: string): void {
     this.selectedId.set(id)
     if (typeof window !== 'undefined') window.localStorage.setItem(APP_KEY, id)
-    // Reload so every page re-fetches under the new scope.
     if (typeof window !== 'undefined') window.location.reload()
   }
 

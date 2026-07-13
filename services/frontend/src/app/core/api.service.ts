@@ -43,7 +43,6 @@ import type {
 export class ApiService {
   constructor(private http: HttpClient, private appScope: ApplicationService) {}
 
-  // Merge the active application_id into params for application-scoped endpoints.
   private scoped(params: Record<string, string> = {}): Record<string, string> {
     const appId = this.appScope.currentApplicationId()
     return appId ? { ...params, application_id: appId } : params

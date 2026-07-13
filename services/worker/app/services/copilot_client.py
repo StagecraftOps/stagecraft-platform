@@ -5,10 +5,6 @@ from app.core.config import settings
 _GH_API = "https://api.github.com"
 
 class CopilotAgentClient:
-    """Thin client for GitHub's Copilot coding agent (Agent Tasks REST API,
-    public preview). Unlike GitHubRemediationClient, this authenticates with
-    a flat fine-grained PAT bound to one human's Copilot seat -- the Agent
-    Tasks API does not accept GitHub App installation tokens."""
 
     BASE_URL = _GH_API
 

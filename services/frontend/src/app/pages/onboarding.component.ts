@@ -50,27 +50,22 @@ export class OnboardingComponent implements OnInit, OnDestroy {
 
   currentStep = signal(0)
 
-  // step 1
   isLoadingOrgs = computed(() => this.org.isLoading())
   hasOrg = computed(() => this.org.orgs().length > 0)
 
-  // step 2
   repos = signal<RepoRow[]>([])
   selectedRepos = signal<Set<string>>(new Set())
   isLoadingRepos = signal(false)
   savingScope = signal(false)
   repoError = signal<string | null>(null)
 
-  // step 3
   templates = signal<WorkflowTemplate[]>([])
   isLoadingTemplates = signal(false)
 
-  // step 4
   contexts = signal<ApplicationContext[]>([])
   governanceDocs = signal<GovernanceDocument[]>([])
   isLoadingStandards = signal(false)
 
-  // step 5
   progress = signal<{
     org_login: string
     org_sync_status: string
@@ -96,7 +91,6 @@ export class OnboardingComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     await this.org.refresh()
     if (this.hasOrg()) {
-      // If redirected back from GitHub install, org list is now populated - advance past Connect.
       this.currentStep.set(0)
     }
   }
@@ -128,7 +122,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
 
   async goToStep(index: number) {
     if (index === this.currentStep()) return
-    if (index > this.currentStep()) return // only allow going back via indicator
+    if (index > this.currentStep()) return
     this.stopPolling()
     this.currentStep.set(index)
   }

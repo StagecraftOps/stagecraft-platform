@@ -8,9 +8,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 class Application(Base):
-    """A project/application: a named group of repos within an org, isolated
-    from other applications. Domain rows carry application_id derived from
-    repo membership (a repo belongs to exactly one application per org)."""
 
     __tablename__ = "applications"
     __table_args__ = (UniqueConstraint("org_id", "slug", name="uq_application_org_slug"),)
@@ -31,8 +28,6 @@ class Application(Base):
     )
 
 class ApplicationRepo(Base):
-    """Membership: which repos belong to an application. A repo belongs to at
-    most one application per org (enforced by unique org_id+repo_name)."""
 
     __tablename__ = "application_repos"
     __table_args__ = (

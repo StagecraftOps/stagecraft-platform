@@ -28,12 +28,10 @@ export class SettingsComponent implements OnInit {
 
   section = signal<Section>('applications')
 
-  // Organizations
   orgs = signal<Organization[]>([])
   isLoading = signal(true)
   removingLogin = signal<string | null>(null)
 
-  // Applications
   applications = signal<Application[]>([])
   repos = signal<RepoRow[]>([])
   reposLoading = signal(false)
@@ -44,7 +42,6 @@ export class SettingsComponent implements OnInit {
   createError = signal<string | null>(null)
   deletingId = signal<string | null>(null)
 
-  // Context upload
   contextRepo = signal<string>('')
   contextBusy = signal(false)
   contextMessage = signal<string | null>(null)
@@ -61,7 +58,6 @@ export class SettingsComponent implements OnInit {
     this.section.set(s)
   }
 
-  // --- Organizations ---
   async load() {
     this.isLoading.set(true)
     try {
@@ -85,7 +81,6 @@ export class SettingsComponent implements OnInit {
     window.location.href = this.api.getOrgInstallUrl()
   }
 
-  // --- Applications ---
   async loadApplications() {
     await this.appSvc.load()
     this.applications.set(this.appSvc.applications())

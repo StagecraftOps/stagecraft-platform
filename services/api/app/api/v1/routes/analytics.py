@@ -22,18 +22,14 @@ async def get_analytics(
     _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    # When an application is selected, every metric is scoped to its rows.
     wf_app = [WorkflowRun.application_id == application_id] if application_id else []
     rem_app = [Remediation.application_id == application_id] if application_id else []
     vuln_app = [VulnerabilityFinding.application_id == application_id] if application_id else []
 
-    # Total = every ingested run (incl. in-progress / queued, which have NULL conclusion).
     total_runs = (
         await db.execute(select(func.count()).select_from(WorkflowRun).where(*wf_app))
     ).scalar_one() or 0
 
-    # Completed = finished runs only (conclusion is set). All rate math uses THIS as the
-    # denominator so in-progress / queued runs never dilute failure/success rates.
     completed_runs = (
         await db.execute(
             select(func.count()).select_from(WorkflowRun).where(WorkflowRun.conclusion.is_not(None), *wf_app)
@@ -54,11 +50,9 @@ async def get_analytics(
 
     other_runs = max(completed_runs - success_runs - failed_runs, 0)
 
-    # Authoritative rates: over COMPLETED runs, not total.
     failure_rate = round(failed_runs / completed_runs, 4) if completed_runs else 0.0
     success_rate = round(success_runs / completed_runs, 4) if completed_runs else 0.0
 
-    # Top failing repos.
     top_failing_result = await db.execute(
         select(WorkflowRun.repo_name, func.count().label("count"))
         .where(WorkflowRun.conclusion == "failure", *wf_app)
@@ -70,7 +64,6 @@ async def get_analytics(
         {"repo": row.repo_name, "count": row.count} for row in top_failing_result.all()
     ]
 
-    # Top failing workflows.
     top_failing_wf_result = await db.execute(
         select(WorkflowRun.workflow_name, func.count().label("count"))
         .where(WorkflowRun.conclusion == "failure", *wf_app)
@@ -82,7 +75,6 @@ async def get_analytics(
         {"workflow": row.workflow_name, "count": row.count} for row in top_failing_wf_result.all()
     ]
 
-    # 30-day run trend.
     since = datetime.now(timezone.utc) - timedelta(days=_TREND_DAYS)
     day = func.date(WorkflowRun.created_at)
     trend_result = await db.execute(
@@ -100,7 +92,6 @@ async def get_analytics(
         for row in trend_result.all()
     ]
 
-    # Run frequency: completed runs/day over the trend window (DORA "deployment frequency" proxy).
     completed_in_window = (
         await db.execute(
             select(func.count())
@@ -110,14 +101,12 @@ async def get_analytics(
     ).scalar_one() or 0
     runs_per_day = round(completed_in_window / _TREND_DAYS, 2)
 
-    # A raised PR = a remediation that actually produced a PR URL (not merely "helpful").
     remediations_raised = (
         await db.execute(
             select(func.count()).select_from(Remediation).where(Remediation.pr_url.is_not(None), *rem_app)
         )
     ).scalar_one() or 0
 
-    # Avg analysis time (failure ingested -> analysis done).
     epoch = func.extract("epoch", Remediation.updated_at - Remediation.created_at)
     avg_analysis_seconds = (
         await db.execute(
@@ -128,7 +117,6 @@ async def get_analytics(
     ).scalar_one()
     avg_analysis_seconds = round(float(avg_analysis_seconds)) if avg_analysis_seconds is not None else None
 
-    # Legacy: time-to-PR measured from remediation row creation.
     epoch_pr = func.extract("epoch", Remediation.pr_raised_at - Remediation.created_at)
     avg_time_to_pr_seconds = (
         await db.execute(
@@ -137,8 +125,6 @@ async def get_analytics(
     ).scalar_one()
     avg_time_to_pr_seconds = round(float(avg_time_to_pr_seconds)) if avg_time_to_pr_seconds is not None else None
 
-    # MTTR (Mean Time To Remediation / DORA time-to-restore): from the RUN's completion
-    # (i.e. when the failure actually surfaced) to the fix PR being raised.
     mttr_epoch = func.extract("epoch", Remediation.pr_raised_at - WorkflowRun.completed_at)
     mttr_seconds = (
         await db.execute(
@@ -150,7 +136,6 @@ async def get_analytics(
     ).scalar_one()
     mttr_seconds = round(float(mttr_seconds)) if mttr_seconds is not None else None
 
-    # MTTD (Mean Time To Detection): run completion -> remediation analysis kicked off.
     mttd_epoch = func.extract("epoch", Remediation.created_at - WorkflowRun.completed_at)
     mttd_seconds = (
         await db.execute(
@@ -162,7 +147,6 @@ async def get_analytics(
     ).scalar_one()
     mttd_seconds = round(float(mttd_seconds)) if mttd_seconds is not None else None
 
-    # Open vulnerabilities by (in-context) severity.
     sev = func.coalesce(VulnerabilityFinding.severity_in_context, VulnerabilityFinding.severity)
     vuln_rows = await db.execute(
         select(sev.label("sev"), func.count().label("count"))

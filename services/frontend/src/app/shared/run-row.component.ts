@@ -7,9 +7,6 @@ import { formatRelativeTime, calculateDuration, formatSha, truncate } from '../c
 import type { WorkflowRun } from '../core/types'
 
 @Component({
-  // Attribute selector on <tr>: the host element IS the table row, so no
-  // wrapper element sits between <tbody> and <tr>. This keeps the row a real
-  // <tr> under table-fixed, so body cells line up with the header columns.
   selector: 'tr[app-run-row]',
   standalone: true,
   imports: [CommonModule, LucideAngularModule, BadgeComponent],

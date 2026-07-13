@@ -1,6 +1,1 @@
-{{/*
-Renders with the base chart context (componentSuffix unset) so common.fullname
-= stagecraft-worker and the selector targets the celery worker deployment,
-whose health server serves /internal/investigate for Pipeline Chat.
-*/}}
 {{ include "common.service" . }}

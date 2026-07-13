@@ -1,4 +1,3 @@
-# Stage 1: Install dependencies
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 
@@ -6,7 +5,6 @@ COPY package.json package-lock.json* ./
 
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# Stage 2: Build the application
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
@@ -15,7 +13,6 @@ COPY . .
 
 RUN npm run build
 
-# Stage 3: Production runtime
 FROM nginx:1.27-alpine AS runner
 
 COPY --from=builder /app/dist/angular-app/browser /usr/share/nginx/html

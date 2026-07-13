@@ -1,8 +1,3 @@
-{{/*
-Headless Service required by the StatefulSet's serviceName — clusterIP: None,
-no load-balancing, just DNS for the single pod. The actual client-facing Bolt
-endpoint other pods connect to is templates/service.yaml (common.service).
-*/}}
 apiVersion: v1
 kind: Service
 metadata:

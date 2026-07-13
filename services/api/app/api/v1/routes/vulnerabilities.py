@@ -71,8 +71,6 @@ async def run_dependency_fix(
     body: RemediationTriggerRequest,
     _user: User = Depends(get_current_user),
 ) -> dict:
-    """Trigger the Vulnerability Remediation (Custom) agent: dependency-ordered
-    fix PR for a repo's open, fixable findings."""
     await _publisher.publish({
         "event_type": "run_vulnerability_dependency_fix",
         "org_login": body.org_login,
@@ -85,8 +83,6 @@ async def publish_vulnerability_agent(
     body: RemediationTriggerRequest,
     _user: User = Depends(get_current_user),
 ) -> dict:
-    """Deploy the Vulnerability Remediation agent's scanning workflow into a
-    repo via a PR, so it starts feeding real findings to the RCA agent."""
     await _publisher.publish({
         "event_type": "publish_vulnerability_agent",
         "org_login": body.org_login,
@@ -99,13 +95,6 @@ async def run_agentic_remediation(
     body: RemediationTriggerRequest,
     _user: User = Depends(get_current_user),
 ) -> dict:
-    """Trigger the deployed agentic remediation workflow (real Claude Code via
-    claude-code-action): builds a brief from open findings + Application
-    Context + skill files, commits it, and dispatches the workflow.
-
-    If finding_id is set, the brief is scoped to that single finding instead
-    of every open finding in the repo -- used by the per-finding "Deploy to
-    repository" action."""
     await _publisher.publish({
         "event_type": "run_agentic_remediation",
         "org_login": body.org_login,
@@ -119,9 +108,6 @@ async def run_copilot_remediation(
     body: RemediationTriggerRequest,
     _user: User = Depends(get_current_user),
 ) -> dict:
-    """Trigger GitHub Copilot's coding agent (Agent Tasks REST API) to open a
-    dependency-ordered fix PR -- no workflow needs to be deployed into the
-    repo first, unlike the claude-code-action path."""
     await _publisher.publish({
         "event_type": "run_copilot_remediation",
         "org_login": body.org_login,

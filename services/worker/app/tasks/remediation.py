@@ -316,8 +316,6 @@ def _parse_timestamp(value: str | None) -> datetime | None:
         return None
 
 def _resolve_application_id(session: Session, org_login: str, repo_name: str | None) -> str | None:
-    """Map a repo to its owning application (if assigned), so new rows are
-    correctly attributed for per-application isolation."""
     if not repo_name:
         return None
     row = session.execute(
@@ -631,9 +629,6 @@ _STAGECRAFT_BOT_LOGIN = "stagecraftops[bot]"
 _CODE_LEVEL_FIX_COOLDOWN_MINUTES = 15
 
 def _recently_dispatched_code_level_fix(session: Session, org_login: str, repo_name: str) -> bool:
-    """Second, independent guard against the brief-commit re-trigger loop --
-    even if sender_login isn't populated for some event shape, don't dispatch
-    another code-level fix for the same repo within the cooldown window."""
     row = session.execute(
         text(
             """
@@ -664,12 +659,6 @@ def process_failed_workflow(self, message: dict) -> dict:
     logger.info("Analyzing failed workflow run %s for %s/%s", run_id, repo_owner, repo_name)
 
     if sender_login == _STAGECRAFT_BOT_LOGIN:
-        # A failure caused by our own bot's commit (e.g. committing an updated
-        # BRIEF.md, which is itself a push and re-triggers CI) isn't new
-        # information -- it's the same still-unfixed bug re-announcing itself.
-        # Without this guard, dispatching a fresh fix attempt here creates an
-        # unbounded loop: brief commit -> CI re-runs -> fails -> dispatch ->
-        # brief commit -> ... (this happened for real; see incident notes).
         logger.info(
             "Skipping analysis for run %s in %s/%s -- triggered by our own bot (%s), not a new failure",
             run_id, repo_owner, repo_name, sender_login,
@@ -962,11 +951,6 @@ def _build_failure_brief(
     root_cause: str, code_level_reasoning: str | None, failure_category: str | None,
     logs: str, app_context: dict | None,
 ) -> str:
-    """Brief for claude-code-action when the Self-Healing RCA agent has
-    already determined a failure's root cause is in the application's own
-    source, not the pipeline YAML -- gives the agent a starting point (the
-    RCA analysis + a log excerpt), then lets it explore the actual checked-
-    out repo to find and fix the real code."""
     lines = [
         f"# StageCraft Failure Brief -- {org_login}/{repo_name}",
         "",
@@ -1112,8 +1096,6 @@ def _get_org_id(session: Session, org_login: str) -> str | None:
     return str(row[0]) if row else None
 
 def _get_active_repo_names(session: Session, org_id: str) -> set[str] | None:
-    """None means no scope has been configured -- treat every repo as active
-    (keeps existing orgs, which predate the Select Scope step, working as before)."""
     rows = session.execute(
         text("SELECT repo_name FROM org_repo_scope WHERE org_id = :org_id AND is_active = true"),
         {"org_id": org_id},

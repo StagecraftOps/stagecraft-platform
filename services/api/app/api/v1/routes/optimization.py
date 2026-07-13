@@ -66,10 +66,6 @@ async def list_recommendations(
 
     responses = [OptimizationRecommendationResponse.model_validate(r) for r in recs]
 
-    # original_yaml is normally captured at analysis time (see optimization.py's
-    # worker task) and returned as-is above via model_validate. This fallback only
-    # covers recommendations created before that snapshot existed -- best-effort,
-    # and may not match what the LLM actually saw if the file has since drifted.
     stale_recs = [(rec, response) for rec, response in zip(recs, responses) if not rec.original_yaml]
     if stale_recs:
         graph_ids = {rec.graph_id for rec, _ in stale_recs}

@@ -7,7 +7,6 @@ down_revision = '0026'
 branch_labels = None
 depends_on = None
 
-# Repo-scoped domain tables that gain a first-class application_id.
 _APP_SCOPED_TABLES = [
     'workflow_runs',
     'remediations',

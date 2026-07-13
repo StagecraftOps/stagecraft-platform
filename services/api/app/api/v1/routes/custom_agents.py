@@ -49,7 +49,6 @@ async def get_custom_agent_config(
     )
     config = result.scalar_one_or_none()
     if not config and repo_name:
-        # Fall back to the org-wide default config when no repo-specific row exists.
         result = await db.execute(
             select(CustomAgentConfig).where(
                 CustomAgentConfig.org_login == org_login,
