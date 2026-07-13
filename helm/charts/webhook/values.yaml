@@ -1,0 +1,60 @@
+namespace: stagecraft
+nameOverride: ""
+
+image:
+  repository: yourregistry/stagecraft-webhook
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 2
+containerPort: 8001
+
+service:
+  enabled: true
+  port: 80
+  targetPort: 8001
+
+serviceAccount:
+  create: true
+  roleArn: ""
+
+# Populates the stagecraft-webhook-secrets Kubernetes Secret from AWS Secrets
+# Manager via the External Secrets Operator (see the umbrella chart's
+# clustersecretstore.yaml).
+externalSecret:
+  enabled: true
+  storeName: stagecraft
+  awsSecretName: stagecraft-webhook-secrets
+  refreshInterval: 1h
+
+env:
+  ENVIRONMENT: production
+  AWS_REGION: us-east-1
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8001
+  initialDelaySeconds: 10
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8001
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+ingress:
+  enabled: true
+  groupName: stagecraft
+  host: webhooks.stagecraft.example.com
+  path: /

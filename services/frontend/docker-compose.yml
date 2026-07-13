@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stagecraft-frontend
+    ports:
+      - "3000:3000"
+
+networks:
+  default:
+    name: stagecraft-frontend-network

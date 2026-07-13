@@ -1,0 +1,64 @@
+{{/*
+Hand-written rather than common.deployment — that shared template has no
+volume/volumeClaimTemplate support, and Neo4j is the first stateful workload
+on this platform. Everything else (labels, naming, envFrom shape) mirrors
+common.deployment's conventions so this fits in the same way every other
+service does.
+*/}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "common.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "common.fullname" . }}-headless
+  # Community Edition can't cluster — deliberately not a values knob.
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "common.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "common.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "common.fullname" . }}
+      containers:
+        - name: {{ include "common.componentName" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: bolt
+              containerPort: 7687
+          envFrom:
+            - configMapRef:
+                name: {{ include "common.fullname" . }}-config
+            - secretRef:
+                name: {{ include "common.fullname" . }}-secrets
+                optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: 7687
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 7687
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

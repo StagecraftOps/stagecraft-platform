@@ -1,0 +1,23 @@
+apiVersion: v2
+name: stagecraft
+description: Umbrella chart for the full Stagecraft platform — one-shot install of all 5 services
+version: 0.1.0
+dependencies:
+  - name: api
+    version: 0.1.0
+    repository: "file://./charts/api"
+  - name: worker
+    version: 0.1.0
+    repository: "file://./charts/worker"
+  - name: webhook
+    version: 0.1.0
+    repository: "file://./charts/webhook"
+  - name: frontend
+    version: 0.1.0
+    repository: "file://./charts/frontend"
+  - name: mcp
+    version: 0.1.0
+    repository: "file://./charts/mcp"
+  - name: neo4j
+    version: 0.1.0
+    repository: "file://./charts/neo4j"

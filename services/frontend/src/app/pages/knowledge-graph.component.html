@@ -1,0 +1,28 @@
+<div class="p-8">
+  <app-page-header eyebrow="Quality" title="Knowledge Graph" description="Governance rules, failures, and runtime metrics cross-linked to your pipeline structure.">
+    <ng-container actions>
+      <button (click)="build()" [disabled]="building()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
+        <lucide-angular [img]="icons.RefreshCw" [size]="14" [class.animate-spin]="building()"></lucide-angular>
+        {{ building() ? 'Building…' : 'Rebuild' }}
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <div *ngIf="error()" class="flex items-center gap-3 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-4 mb-6">
+    <lucide-angular [img]="icons.AlertCircle" [size]="16"></lucide-angular>
+    <p class="text-sm">No knowledge graph built yet. Click Rebuild — it works best after you have at least one dependency graph, some remediations, and/or governance findings.</p>
+  </div>
+
+  <div *ngIf="graph() as g" class="grid grid-cols-2 gap-4 mb-6">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <p class="text-xs text-zinc-500">Nodes</p>
+      <p class="text-xl font-bold text-zinc-800">{{ g.node_count }}</p>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <p class="text-xs text-zinc-500">Edges</p>
+      <p class="text-xl font-bold text-zinc-800">{{ g.edge_count }}</p>
+    </div>
+  </div>
+
+  <app-dag-viewer *ngIf="graph() as g" [nodes]="g.nodes" [edges]="g.edges" mode="knowledge"></app-dag-viewer>
+</div>

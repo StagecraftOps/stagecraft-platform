@@ -1,0 +1,71 @@
+namespace: stagecraft
+nameOverride: ""
+
+image:
+  repository: yourregistry/stagecraft-api
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 2
+containerPort: 8000
+
+service:
+  enabled: true
+  port: 80
+  targetPort: 8000
+
+serviceAccount:
+  create: true
+  roleArn: ""
+
+# Populates the stagecraft-api-secrets Kubernetes Secret from AWS Secrets
+# Manager via the External Secrets Operator (see the umbrella chart's
+# clustersecretstore.yaml). awsSecretName must match the name Terraform gave
+# the secret (stagecraft-infra: module.secrets, `<cluster_name>-api-secrets`).
+externalSecret:
+  enabled: true
+  storeName: stagecraft
+  awsSecretName: stagecraft-api-secrets
+  refreshInterval: 1h
+
+env:
+  ENVIRONMENT: production
+  AWS_REGION: us-east-1
+  FRONTEND_URL: https://stagecraft.example.com
+  GITHUB_REDIRECT_URI: https://stagecraft.example.com/api/auth/callback
+  BEDROCK_MODEL_ID: anthropic.claude-sonnet-4-6
+
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  groupName: stagecraft
+  host: stagecraft.ustpace.com
+  # /api/v1 = REST API, /ws = websockets. Deliberately NOT /api — the frontend
+  # owns /api/auth/* and /api/health as its own Next.js routes.
+  paths:
+    - /api/v1
+    - /ws
+
+migration:
+  enabled: true

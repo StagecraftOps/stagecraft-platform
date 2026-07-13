@@ -1,0 +1,197 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Instrument+Serif&family=JetBrains+Mono&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7rem;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    font-weight: 500;
+  }
+
+  body {
+    @apply bg-zinc-50 text-zinc-800 font-medium m-0;
+  }
+
+  .dark body {
+    @apply bg-zinc-950 text-zinc-100;
+  }
+
+  body,
+  body * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .dark .app-shell .bg-white { background-color: rgb(24 24 27); }
+  .dark .app-shell .bg-zinc-50 { background-color: rgb(9 9 11); }
+  .dark .app-shell .bg-zinc-100 { background-color: rgb(39 39 42); }
+  .dark .app-shell .text-zinc-900 { color: rgb(244 244 245); }
+  .dark .app-shell .text-zinc-800 { color: rgb(228 228 231); }
+  .dark .app-shell .text-zinc-700 { color: rgb(212 212 216); }
+  .dark .app-shell .text-zinc-600 { color: rgb(161 161 170); }
+  .dark .app-shell .border-zinc-200 { border-color: rgb(39 39 42); }
+  .dark .app-shell .border-zinc-100 { border-color: rgb(39 39 42); }
+
+  /* Light theme only, main content only (never the sidebar, which is fixed-dark) --
+     the default zinc-400/500 text and zinc-100/200 borders read as too faint on white. */
+  html:not(.dark) .app-shell > main .text-zinc-400 { color: rgb(113 113 122); }
+  html:not(.dark) .app-shell > main .text-zinc-500 { color: rgb(82 82 91); }
+  html:not(.dark) .app-shell > main .border-zinc-200 { border-color: rgb(212 212 216); }
+  html:not(.dark) .app-shell > main .border-zinc-100 { border-color: rgb(228 228 231); }
+  html:not(.dark) .app-shell > main .shadow-sm { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08); }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-200 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-300;
+  }
+}
+
+@layer components {
+  /* Shared button kit -- matches the design system's Primary/Success/Danger/
+     Warning/Secondary/Link/Light variants at two sizes (default = M, .btn-s = S). */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 font-semibold rounded-md
+           px-5 py-2.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-s {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-primary {
+    @apply btn bg-blue-600 text-white hover:bg-blue-700;
+  }
+
+  .btn-success {
+    @apply btn bg-emerald-500 text-white hover:bg-emerald-600;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-500 text-white hover:bg-red-600;
+  }
+
+  .btn-warning {
+    @apply btn bg-amber-500 text-white hover:bg-amber-600;
+  }
+
+  .btn-secondary {
+    @apply btn bg-white text-blue-600 border border-blue-500 hover:bg-blue-50
+           dark:bg-transparent dark:hover:bg-blue-500/10;
+  }
+
+  .btn-link {
+    @apply btn bg-transparent text-blue-600 px-1 py-0 hover:underline;
+  }
+
+  .btn-light {
+    @apply btn bg-indigo-100 text-blue-700 hover:bg-indigo-200
+           dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20;
+  }
+}
+
+@layer utilities {
+  .font-serif-display {
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  .font-code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .noise-overlay {
+    position: relative;
+  }
+  .noise-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .marquee {
+    animation: marquee 35s linear infinite;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-char-in {
+    animation: char-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    opacity: 0;
+    filter: blur(24px);
+    transform: translateY(60%);
+  }
+
+  @keyframes char-in {
+    to {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0);
+    }
+  }
+
+  .reveal-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .reveal-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .code-line-reveal {
+    opacity: 0;
+    transform: translateX(-8px);
+    animation: lineReveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes lineReveal {
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes progress {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+}

@@ -1,0 +1,20 @@
+<div class="p-8">
+  <app-page-header eyebrow="Pipelines" title="Dependency Graph" description="How your GitHub Actions workflows call each other — parsed statically from YAML, no AI involved.">
+    <ng-container actions>
+      <select *ngIf="repos().length > 1" [ngModel]="selectedRepo()" (ngModelChange)="onRepoChange($event)" class="text-sm border border-zinc-200 rounded-md bg-white text-zinc-700 px-3 py-2">
+        <option *ngFor="let repo of repos()" [value]="repo">{{ repo }}</option>
+      </select>
+      <button (click)="build()" [disabled]="building() || !selectedRepo()" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
+        <lucide-angular [img]="icons.RefreshCw" [size]="14" [class.animate-spin]="building()"></lucide-angular>
+        {{ building() ? 'Building…' : 'Rebuild graph' }}
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <div *ngIf="error()" class="flex items-center gap-3 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-4 mb-6">
+    <lucide-angular [img]="icons.AlertCircle" [size]="16"></lucide-angular>
+    <p class="text-sm">No completed dependency graph found for this repo yet. Click Rebuild graph.</p>
+  </div>
+
+  <app-dag-viewer *ngIf="graph() as g" [nodes]="g.nodes" [edges]="g.edges" mode="dependency"></app-dag-viewer>
+</div>

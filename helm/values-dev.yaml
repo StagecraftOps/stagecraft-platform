@@ -1,0 +1,35 @@
+
+api:
+  image:
+    tag: dev
+  replicaCount: 1
+  ingress:
+    host: dev.stagecraft.example.com
+
+worker:
+  image:
+    tag: dev
+
+  worker:
+    replicaCount: 1
+  consumer:
+    replicaCount: 1
+
+webhook:
+  image:
+    tag: dev
+  replicaCount: 1
+  ingress:
+    host: webhooks-dev.stagecraft.example.com
+
+frontend:
+  image:
+    tag: dev
+  replicaCount: 1
+  ingress:
+    host: dev.stagecraft.example.com
+
+mcp:
+  image:
+    tag: dev
+  replicaCount: 1

@@ -1,0 +1,103 @@
+<div class="p-8">
+  <app-page-header eyebrow="Quality" title="Governance & Compliance" description="Framework checks and policy-document gap analysis for your pipelines.">
+    <div actions *ngIf="repos().length > 1">
+      <select [ngModel]="selectedRepo()" (ngModelChange)="onRepoChange($event)" class="text-sm border border-zinc-200 rounded-md bg-white text-zinc-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        <option *ngFor="let repo of repos()" [value]="repo">{{ repo }}</option>
+      </select>
+    </div>
+  </app-page-header>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5">
+        <p class="text-xs text-zinc-500">Compliance Score — {{ selectedRepo() || '—' }}</p>
+        <p class="text-2xl font-bold text-zinc-800">{{ complianceScore() === null ? '—' : complianceScore() + '%' }}</p>
+      </div>
+    </div>
+
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Framework Check</h3>
+        <p class="text-xs text-zinc-500">Run a control-presence audit against a compliance framework.</p>
+      </div>
+      <div class="p-5">
+        <div class="flex items-center gap-2">
+          <select [ngModel]="framework()" (ngModelChange)="framework.set($event)" class="text-sm border border-zinc-200 rounded-md bg-white text-zinc-700 px-3 py-2 flex-1">
+            <option *ngFor="let f of frameworks" [value]="f">{{ f }}</option>
+          </select>
+          <button (click)="analyzeFramework()" [disabled]="analyzingFramework() || !selectedRepo()" class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
+            <lucide-angular [img]="icons.RefreshCw" [size]="14" [class.animate-spin]="analyzingFramework()"></lucide-angular>
+            Analyze
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Upload Document</h3>
+        <p class="text-xs text-zinc-500">Governance policy or application-profile document.</p>
+      </div>
+      <div class="p-5 space-y-2">
+        <div class="flex gap-2">
+          <select [ngModel]="docType()" (ngModelChange)="docType.set($event)" class="text-xs border border-zinc-200 rounded-md bg-white text-zinc-700 px-2 py-1.5">
+            <option value="governance_policy">Governance Policy</option>
+            <option value="app_profile">Application Profile</option>
+          </select>
+          <input type="text" placeholder="Title (optional)" [ngModel]="title()" (ngModelChange)="title.set($event)" class="flex-1 text-xs border border-zinc-200 rounded-md px-2 py-1.5" />
+        </div>
+        <label class="flex items-center justify-center gap-2 text-xs font-medium text-zinc-600 border border-dashed border-zinc-300 rounded-md py-2 cursor-pointer hover:bg-zinc-50">
+          <lucide-angular [img]="icons.Upload" [size]="12"></lucide-angular>
+          {{ uploading() ? 'Uploading…' : 'Choose file (.txt/.docx/.pdf)' }}
+          <input type="file" accept=".txt,.docx,.pdf" class="hidden" (change)="onFileSelected($event)" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Uploaded Documents</h3>
+      </div>
+      <div class="p-5">
+        <p *ngIf="documents().length === 0" class="text-sm text-zinc-400 py-4 text-center">No documents uploaded yet.</p>
+        <div *ngIf="documents().length > 0" class="space-y-2">
+          <div *ngFor="let doc of documents()" class="flex items-center justify-between border border-zinc-100 rounded-md p-3">
+            <div class="flex items-center gap-2 min-w-0">
+              <lucide-angular [img]="icons.FileText" [size]="14" class="text-zinc-400 flex-shrink-0"></lucide-angular>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-zinc-800 truncate">{{ doc.title }}</p>
+                <p class="text-xs text-zinc-400">{{ doc.doc_type.replace('_', ' ') }}</p>
+              </div>
+            </div>
+            <button (click)="analyzeDocument(doc.id)" [disabled]="analyzingDocId() === doc.id || !selectedRepo()" class="text-xs font-medium text-amber-600 hover:text-amber-700 disabled:opacity-50 flex-shrink-0">
+              Analyze
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Findings — {{ selectedRepo() || '—' }}</h3>
+      </div>
+      <div class="p-5">
+        <p *ngIf="findings().length === 0" class="text-sm text-zinc-400 py-4 text-center">No findings yet. Run an analysis above.</p>
+        <div *ngIf="findings().length > 0" class="space-y-2">
+          <div *ngFor="let finding of findings()" class="flex items-start gap-2 border border-zinc-100 rounded-md p-3">
+            <lucide-angular *ngIf="finding.status === 'gap'" [img]="icons.AlertTriangle" [size]="13" class="text-rose-500"></lucide-angular>
+            <lucide-angular *ngIf="finding.status === 'compliant'" [img]="icons.CheckCircle2" [size]="13" class="text-emerald-500"></lucide-angular>
+            <span *ngIf="finding.status !== 'gap' && finding.status !== 'compliant'" class="text-zinc-400 text-xs">N/A</span>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-zinc-800">{{ finding.requirement_id }}</p>
+              <p class="text-xs text-zinc-500">{{ finding.finding_detail }}</p>
+              <p *ngIf="finding.remediation_suggestion" class="text-xs text-amber-600 mt-1">{{ finding.remediation_suggestion }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

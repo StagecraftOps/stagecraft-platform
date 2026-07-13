@@ -1,0 +1,98 @@
+<div [ngClass]="expanded() ? 'fixed inset-0 z-50 flex flex-col gap-3 bg-white p-4 dark:bg-zinc-950' : 'flex flex-col gap-3'">
+  <div class="flex flex-wrap items-center gap-2">
+    <input
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      placeholder="Search nodes…"
+      class="w-56 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+    />
+    <button *ngIf="focusId()" (click)="clearFocus()" class="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50">
+      ← Clear focus{{ focusName() ? (': ' + focusName()) : '' }}
+    </button>
+    <div class="ml-auto flex gap-2">
+      <button (click)="resetView()" class="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50">Reset view</button>
+      <button (click)="toggleExpanded()" class="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 flex items-center gap-1.5">
+        <lucide-angular [img]="expanded() ? icons.Minimize2 : icons.Maximize2" [size]="14"></lucide-angular>
+        {{ expanded() ? 'Exit fullscreen' : 'Expand' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="drilledWorkflowId()" class="flex items-center gap-2 text-sm text-zinc-500">
+    <button (click)="goBackToAll()" class="underline hover:text-zinc-700">All workflows</button>
+    <span>/</span>
+    <span class="font-medium text-zinc-700">{{ breadcrumbLabel() }}</span>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    <button
+      *ngFor="let t of presentTypes()"
+      (click)="toggleType(t)"
+      [title]="NODE_DESCRIPTIONS[t] || ''"
+      class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition"
+      [ngClass]="hidden().has(t) ? 'border-zinc-200 bg-zinc-100 text-zinc-400 line-through' : 'border-zinc-300 bg-white text-zinc-700'"
+    >
+      <span class="inline-block h-2.5 w-2.5 rounded-full" [style.background]="NODE_COLORS[t] || '#64748b'" [style.opacity]="hidden().has(t) ? 0.4 : 1"></span>
+      {{ TYPE_LABELS[t] || t }} ({{ typeCounts()[t] }})
+    </button>
+  </div>
+
+  <div
+    #viewport
+    [ngClass]="expanded() ? 'w-full flex-1 rounded-lg border border-zinc-200 overflow-hidden relative' : 'h-[calc(100vh-260px)] min-h-[560px] w-full rounded-lg border border-zinc-200 overflow-hidden relative'"
+    (wheel)="onWheel($event)"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp()"
+    (mouseleave)="onMouseUp()"
+    style="cursor: grab; background: radial-gradient(circle, #e4e4e7 1px, transparent 1px); background-size: 20px 20px;"
+  >
+    <svg class="w-full h-full">
+      <g [attr.transform]="'translate(' + pan().x + ',' + pan().y + ') scale(' + zoom() + ')'">
+        <path
+          *ngFor="let e of visibleData().edges"
+          [attr.d]="edgePath(e)"
+          fill="none"
+          [attr.stroke]="edgeStroke(e)"
+          [attr.stroke-dasharray]="edgeDash(e)"
+          stroke-width="1.5"
+        />
+        <text
+          *ngFor="let e of visibleData().edges"
+          [attr.x]="edgeMidpoint(e).x"
+          [attr.y]="edgeMidpoint(e).y"
+          font-size="10"
+          fill="#64748b"
+          text-anchor="middle"
+        >{{ edgeLabel(e) }}</text>
+
+        <g *ngFor="let n of visibleData().positioned" (click)="onNodeClick(n)" style="cursor: pointer;">
+          <rect
+            [attr.x]="n.x"
+            [attr.y]="n.y"
+            [attr.width]="NODE_WIDTH"
+            [attr.height]="NODE_HEIGHT"
+            rx="8"
+            [attr.fill]="n.nodeType === null ? 'transparent' : (NODE_COLORS[n.nodeType] || '#64748b')"
+            [attr.stroke]="n.nodeType === null ? '#94a3b8' : (n.emphasize ? '#ef4444' : 'none')"
+            [attr.stroke-dasharray]="n.nodeType === null ? '6 3' : ''"
+            [attr.stroke-width]="n.emphasize ? 3 : (n.nodeType === null ? 2 : 0)"
+            [attr.opacity]="visibleData().query && !matchesQuery(n) ? 0.15 : 1"
+          />
+          <foreignObject [attr.x]="n.x" [attr.y]="n.y" [attr.width]="NODE_WIDTH" [attr.height]="NODE_HEIGHT">
+            <div
+              xmlns="http://www.w3.org/1999/xhtml"
+              [title]="nodeTooltip(n)"
+              class="w-full h-full flex items-center justify-center text-center px-2 text-[11px] leading-tight"
+              [ngClass]="n.nodeType === null ? 'text-zinc-500' : 'text-white'"
+            >
+              {{ n.label }}
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <p class="text-xs text-zinc-500">{{ footerText() }}</p>
+</div>

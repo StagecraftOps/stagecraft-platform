@@ -1,0 +1,34 @@
+
+api:
+  image:
+    tag: staging
+  replicaCount: 1
+  ingress:
+    host: stagecraft.ustpace.com
+
+worker:
+  image:
+    tag: staging
+  worker:
+    replicaCount: 1
+  consumer:
+    replicaCount: 1
+
+webhook:
+  image:
+    tag: staging
+  replicaCount: 1
+  ingress:
+    host: stagecraft.ustpace.com
+
+frontend:
+  image:
+    tag: staging
+  replicaCount: 1
+  ingress:
+    host: stagecraft.ustpace.com
+
+mcp:
+  image:
+    tag: staging
+  replicaCount: 1

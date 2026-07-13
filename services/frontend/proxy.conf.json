@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "http://k8s-stagecraft-1de7e348b3-1960332100.us-east-1.elb.amazonaws.com",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

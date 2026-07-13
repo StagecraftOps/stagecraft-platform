@@ -1,0 +1,184 @@
+import logging
+import secrets
+from urllib.parse import urlencode
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import AUTH_COOKIE_NAME, get_current_user
+from app.api.events import _make_redis
+from app.core.config import settings
+from app.core.limiter import limiter
+from app.core.security import create_access_token, decrypt_token, encrypt_token
+from app.db.base import get_db
+from app.models.organization import Organization
+from app.models.user import User
+from app.schemas.user import UserMe
+from app.services.sqs_publisher import SQSPublisher
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+_publisher = SQSPublisher()
+
+GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
+GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+GITHUB_API_URL = "https://api.github.com"
+
+@router.get("/github")
+@limiter.limit("10/minute")
+async def github_login(request: Request) -> RedirectResponse:
+    state = secrets.token_urlsafe(16)
+    redis = _make_redis(decode_responses=True)
+    try:
+        await redis.setex(f"oauth_state:{state}", 600, "1")
+    finally:
+        await redis.aclose()
+    params = {
+        "client_id": settings.GITHUB_CLIENT_ID,
+        "redirect_uri": settings.GITHUB_REDIRECT_URI,
+
+        "scope": "repo,workflow,admin:org_hook,read:org,user:email",
+        "state": state,
+    }
+    url = f"{GITHUB_AUTH_URL}?{urlencode(params)}"
+    return RedirectResponse(url=url)
+
+@router.get("/callback")
+@limiter.limit("10/minute")
+async def github_callback(
+    code: str,
+    state: str,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
+    redis = _make_redis(decode_responses=True)
+    try:
+        key = f"oauth_state:{state}"
+        stored = await redis.get(key)
+        if stored:
+            await redis.delete(key)
+    finally:
+        await redis.aclose()
+    if not stored:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
+
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(
+            GITHUB_TOKEN_URL,
+            data={
+                "client_id": settings.GITHUB_CLIENT_ID,
+                "client_secret": settings.GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": settings.GITHUB_REDIRECT_URI,
+            },
+            headers={"Accept": "application/json"},
+        )
+        token_response.raise_for_status()
+        token_data = token_response.json()
+
+    github_access_token = token_data.get("access_token")
+    if not github_access_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to obtain GitHub access token",
+        )
+
+    async with httpx.AsyncClient() as client:
+        user_response = await client.get(
+            "https://api.github.com/user",
+            headers={
+                "Authorization": f"Bearer {github_access_token}",
+                "Accept": "application/vnd.github+json",
+            },
+        )
+        user_response.raise_for_status()
+        gh_user = user_response.json()
+
+    result = await db.execute(select(User).where(User.github_id == gh_user["id"]))
+    user = result.scalar_one_or_none()
+
+    encrypted_token = encrypt_token(github_access_token)
+
+    if user is None:
+        user = User(
+            github_id=gh_user["id"],
+            login=gh_user["login"],
+            name=gh_user.get("name"),
+            avatar_url=gh_user.get("avatar_url", ""),
+            email=gh_user.get("email"),
+            access_token_encrypted=encrypted_token,
+        )
+        db.add(user)
+        await db.flush()
+    else:
+        user.login = gh_user["login"]
+        user.name = gh_user.get("name")
+        user.avatar_url = gh_user.get("avatar_url", "")
+        user.email = gh_user.get("email")
+        user.access_token_encrypted = encrypted_token
+
+    await db.commit()
+    await db.refresh(user)
+
+    claimed_result = await db.execute(
+        select(Organization).where(
+            Organization.installed_by_github_id == user.github_id,
+            Organization.owner_id.is_(None),
+        )
+    )
+    unclaimed_orgs = claimed_result.scalars().all()
+    for org in unclaimed_orgs:
+        org.owner_id = user.id
+    if unclaimed_orgs:
+        await db.commit()
+        for org in unclaimed_orgs:
+            await _publisher.publish({"event_type": "backfill_org", "org_login": org.login})
+
+    jwt_token = create_access_token({"sub": str(user.id), "login": user.login})
+
+    redirect = RedirectResponse(
+        url=f"{settings.FRONTEND_URL}/analytics",
+        status_code=status.HTTP_302_FOUND,
+    )
+    redirect.set_cookie(
+        AUTH_COOKIE_NAME,
+        jwt_token,
+        httponly=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * settings.ACCESS_TOKEN_EXPIRE_DAYS,
+        secure=settings.cookie_secure,
+        path="/",
+    )
+    return redirect
+
+@router.get("/me", response_model=UserMe)
+async def get_me(user: User = Depends(get_current_user)) -> UserMe:
+    return UserMe.model_validate(user)
+
+@router.post("/logout")
+async def logout(response: Response, user: User = Depends(get_current_user)) -> dict:
+    try:
+        access_token = decrypt_token(user.access_token_encrypted)
+        async with httpx.AsyncClient() as client:
+            resp = await client.request(
+                "DELETE",
+                f"{GITHUB_API_URL}/applications/{settings.GITHUB_CLIENT_ID}/token",
+                auth=(settings.GITHUB_CLIENT_ID, settings.GITHUB_CLIENT_SECRET),
+                json={"access_token": access_token},
+                headers={"Accept": "application/vnd.github+json"},
+            )
+            if resp.status_code not in (204, 404):
+                logger.warning(
+                    "GitHub token revocation returned unexpected status %s for user %s",
+                    resp.status_code,
+                    user.id,
+                )
+    except Exception as exc:
+        logger.warning("GitHub token revocation failed for user %s: %s", user.id, exc)
+
+    response.delete_cookie(AUTH_COOKIE_NAME, httponly=True, samesite="lax", secure=settings.cookie_secure, path="/")
+    return {"message": "Logged out successfully"}

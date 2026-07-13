@@ -1,0 +1,78 @@
+<div class="p-8">
+  <app-page-header eyebrow="Overview" title="Runtime Performance" description="Longest-running jobs and workflows — pure duration ranking, no AI involved.">
+    <!-- Suggested focus: one short AI-generated recommendation from the metrics below. -->
+    <div actions *ngIf="suggestionLoading() || suggestion()" class="border rounded-lg px-3.5 py-2.5 max-w-xs"
+      [ngClass]="{
+        'border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/30': suggestionSeverity() === 'critical',
+        'border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30': suggestionSeverity() === 'warning',
+        'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900': suggestionSeverity() === 'ok'
+      }">
+      <div class="flex items-center gap-1.5 mb-1">
+        <lucide-angular *ngIf="suggestionSeverity() !== 'ok'" [img]="icons.AlertTriangle" [size]="11" [ngClass]="suggestionSeverity() === 'critical' ? 'text-rose-600' : 'text-amber-600'"></lucide-angular>
+        <p class="text-[10px] font-medium uppercase tracking-wider" [ngClass]="suggestionSeverity() === 'critical' ? 'text-rose-600' : suggestionSeverity() === 'warning' ? 'text-amber-600' : 'text-zinc-400'">Suggested focus</p>
+      </div>
+      <div *ngIf="suggestionLoading()" class="h-3.5 w-32 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse"></div>
+      <p *ngIf="!suggestionLoading() && suggestion()" class="text-xs leading-snug" [ngClass]="suggestionSeverity() === 'critical' ? 'text-rose-800 dark:text-rose-300 font-medium' : suggestionSeverity() === 'warning' ? 'text-amber-800 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300'">{{ suggestion() }}</p>
+    </div>
+  </app-page-header>
+
+  <div class="bg-white border border-zinc-200 rounded-lg shadow-sm mb-6">
+    <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+      <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Runner Breakdown</h3>
+      <p class="text-xs text-zinc-500">Jobs grouped by runner type, synced from GitHub's Jobs API labels.</p>
+    </div>
+    <div class="p-5">
+      <div *ngIf="runnerBreakdown().length === 0" class="h-32 flex items-center justify-center text-zinc-400 text-sm">No runner data yet.</div>
+      <div *ngIf="runnerBreakdown().length > 0" class="space-y-2">
+        <div *ngFor="let r of runnerBreakdown()" class="flex items-center gap-3">
+          <div class="w-40 flex-shrink-0 flex items-center gap-1.5">
+            <lucide-angular *ngIf="!r.runner_labels || r.runner_labels.length === 0" [img]="icons.AlertTriangle" [size]="12" class="text-amber-500 flex-shrink-0"></lucide-angular>
+            <span class="text-sm truncate" [ngClass]="(!r.runner_labels || r.runner_labels.length === 0) ? 'text-amber-600 font-medium' : 'text-zinc-700'">
+              {{ (!r.runner_labels || r.runner_labels.length === 0) ? 'No runner assigned' : r.runner_labels.join(', ') }}
+            </span>
+          </div>
+          <div class="flex-1 h-2 rounded-full bg-zinc-100 overflow-hidden">
+            <div class="h-full" [ngClass]="(!r.runner_labels || r.runner_labels.length === 0) ? 'bg-amber-400' : 'bg-blue-500'" [style.width.%]="runnerPct(r.job_count)"></div>
+          </div>
+          <span class="w-16 flex-shrink-0 text-right text-xs text-zinc-500 tabular-nums">{{ r.job_count }} job{{ r.job_count === 1 ? '' : 's' }}</span>
+          <span class="w-20 flex-shrink-0 text-right text-xs text-zinc-400 tabular-nums">{{ r.avg_duration_seconds != null ? formatDuration(r.avg_duration_seconds) : '—' }}</span>
+        </div>
+        <p *ngIf="hasUnassigned()" class="text-xs text-zinc-400 mt-3">
+          "No runner assigned" means these jobs never got picked up by a runner — usually queue/capacity pressure, not a sync issue.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Longest-Running Jobs</h3>
+      </div>
+      <div class="p-5">
+        <div *ngIf="jobBars().length === 0" class="h-64 flex items-center justify-center text-zinc-400 text-sm">No job timing data yet.</div>
+        <app-bar-chart *ngIf="jobBars().length > 0" [data]="jobBars()" color="#3b82f6"></app-bar-chart>
+      </div>
+    </div>
+
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Longest-Running Workflows</h3>
+      </div>
+      <div class="p-5">
+        <div *ngIf="longestWorkflows().length === 0" class="h-64 flex items-center justify-center text-zinc-400 text-sm">No workflow timing data yet.</div>
+        <ul *ngIf="longestWorkflows().length > 0" class="space-y-2">
+          <li *ngFor="let wf of longestWorkflows()">
+            <a [routerLink]="['/runs', wf.workflow_run_id]" class="flex items-center justify-between px-3 py-2 rounded-md hover:bg-zinc-50 transition-colors">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-zinc-800 truncate">{{ wf.workflow_name }}</p>
+                <p class="text-xs text-zinc-400">{{ wf.repo_name }}</p>
+              </div>
+              <span class="text-sm font-mono text-zinc-500 flex-shrink-0 ml-3">{{ formatDuration(wf.duration_seconds) }}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

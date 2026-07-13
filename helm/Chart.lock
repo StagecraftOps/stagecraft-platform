@@ -1,0 +1,21 @@
+dependencies:
+- name: api
+  repository: file://./charts/api
+  version: 0.1.0
+- name: worker
+  repository: file://./charts/worker
+  version: 0.1.0
+- name: webhook
+  repository: file://./charts/webhook
+  version: 0.1.0
+- name: frontend
+  repository: file://./charts/frontend
+  version: 0.1.0
+- name: mcp
+  repository: file://./charts/mcp
+  version: 0.1.0
+- name: neo4j
+  repository: file://./charts/neo4j
+  version: 0.1.0
+digest: sha256:1a7c936887080ca3bd85647e9f610ed26c5cd22252fc26c036ef54d1fa5b1df5
+generated: "2026-07-05T21:53:01.6903529+05:30"

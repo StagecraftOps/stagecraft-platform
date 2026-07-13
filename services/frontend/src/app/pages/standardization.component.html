@@ -1,0 +1,125 @@
+<div class="p-8">
+  <app-page-header eyebrow="Quality" title="Standardization" description="Template adoption gaps and reusable-component opportunities across your pipelines.">
+    <ng-container actions>
+      <select *ngIf="repos().length > 1" [ngModel]="selectedRepo()" (ngModelChange)="onRepoChange($event)" class="text-sm border border-zinc-200 rounded-md bg-white text-zinc-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        <option *ngFor="let repo of repos()" [value]="repo">{{ repo }}</option>
+      </select>
+      <button (click)="showRegister.set(!showRegister())" [disabled]="!org.currentOrg()" class="px-4 py-2 text-sm font-medium rounded-md border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors">
+        Register template
+      </button>
+      <button (click)="analyze()" [disabled]="analyzing() || !selectedRepo()" [title]="templates().length === 0 ? 'Reuse/duplication detection runs without a template; register one to also get adoption scoring' : ''" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
+        <lucide-angular [img]="icons.RefreshCw" [size]="14" [class.animate-spin]="analyzing()"></lucide-angular>
+        Analyze
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <div *ngIf="patterns().length > 0" class="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 dark:bg-amber-500/10 dark:border-amber-500/20">
+    <lucide-angular [img]="icons.AlertTriangle" [size]="18" class="text-amber-600 shrink-0"></lucide-angular>
+    <p class="text-sm text-amber-800 dark:text-amber-300">
+      <strong>{{ patterns().length }} reuse/duplication {{ patterns().length === 1 ? 'opportunity' : 'opportunities' }} flagged</strong>
+      in {{ selectedRepo() || 'this org' }} — job logic repeated across workflows instead of a shared action, job, or reusable workflow. This is flagged independently of template-adoption gaps below.
+    </p>
+  </div>
+
+  <div *ngIf="showRegister()" class="bg-white border border-zinc-200 rounded-lg shadow-sm mb-6">
+    <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+      <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Register an approved template</h3>
+      <p class="text-xs text-zinc-500">Paste the canonical workflow YAML your pipelines should follow. Adoption is scored against it.</p>
+    </div>
+    <div class="p-5 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input [ngModel]="tplName()" (ngModelChange)="tplName.set($event)" placeholder="Template name (e.g. Standard CI)" class="text-sm border border-zinc-200 rounded-md bg-white text-zinc-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+        <input [ngModel]="tplDesc()" (ngModelChange)="tplDesc.set($event)" placeholder="Description (optional)" class="text-sm border border-zinc-200 rounded-md bg-white text-zinc-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+      </div>
+      <textarea [ngModel]="tplYaml()" (ngModelChange)="tplYaml.set($event)" placeholder="name: Standard CI&#10;on: [push]&#10;jobs:&#10;  build:&#10;    runs-on: ubuntu-latest&#10;    steps:&#10;      - uses: actions/checkout@v4" rows="10" class="w-full font-mono text-xs border border-zinc-200 rounded-md bg-white text-zinc-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+      <p *ngIf="registerError()" class="text-xs text-rose-600">Failed to register template. Check the YAML and try again.</p>
+      <div class="flex items-center gap-2">
+        <button (click)="register()" [disabled]="registering() || !tplName().trim() || !tplYaml().trim()" class="px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
+          {{ registering() ? 'Saving…' : 'Save template' }}
+        </button>
+        <button (click)="showRegister.set(false)" class="px-4 py-2 text-sm font-medium rounded-md text-zinc-500 hover:text-zinc-700">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="templates().length === 0" class="bg-white border border-zinc-200 rounded-lg shadow-sm mb-6">
+    <div class="py-6 px-5 text-sm text-zinc-500">
+      No approved templates registered for this org yet — template-adoption analysis (FR-3) needs at least one template to diff against. Click <strong>Register template</strong> above to add one. Standardization-opportunity discovery (FR-4, below) works without one.
+    </div>
+  </div>
+  <div *ngIf="templates().length > 0" class="bg-white border border-zinc-200 rounded-lg shadow-sm mb-6">
+    <div class="py-4 px-5 flex flex-wrap items-center gap-2">
+      <span class="text-sm text-zinc-500 mr-2">Approved templates:</span>
+      <app-badge *ngFor="let t of templates()" status="analyzed" [label]="t.name"></app-badge>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Template Adoption — {{ selectedRepo() || '—' }}</h3>
+        <p class="text-xs text-zinc-500">Missing required components and version drift vs. approved templates.</p>
+      </div>
+      <div class="p-5">
+        <p *ngIf="diffs().length === 0" class="text-sm text-zinc-400 py-4 text-center">No diff results yet. Click Analyze.</p>
+        <div *ngIf="diffs().length > 0" class="space-y-3">
+          <div *ngFor="let diff of diffs()" class="border border-zinc-100 rounded-md p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-zinc-800 truncate">{{ diff.workflow_file }}</span>
+              <span class="text-sm font-bold tabular-nums" [ngClass]="scoreColor(diff.adoption_score)">{{ diff.adoption_score }}%</span>
+            </div>
+            <p *ngIf="isCompliant(diff)" class="text-xs text-emerald-600 flex items-center gap-1">
+              <lucide-angular [img]="icons.CheckCircle2" [size]="12"></lucide-angular> Fully compliant
+            </p>
+            <div *ngIf="!isCompliant(diff)" class="space-y-1">
+              <p *ngFor="let c of diff.diff_summary.missing_components" class="text-xs text-rose-600 flex items-center gap-1">
+                <lucide-angular [img]="icons.AlertTriangle" [size]="11"></lucide-angular> Missing: {{ c }}
+              </p>
+              <p *ngFor="let d of diff.diff_summary.version_drift" class="text-xs text-amber-600">
+                Version drift: {{ d.component }} ({{ d.workflow_version }} vs. template {{ d.template_version }})
+              </p>
+              <p *ngIf="diff.diff_summary.narrative" class="text-xs text-zinc-500 italic flex items-start gap-1.5 pt-1 mt-1 border-t border-zinc-100">
+                <lucide-angular [img]="icons.Sparkles" [size]="11" class="mt-0.5 shrink-0 text-amber-500"></lucide-angular>
+                {{ diff.diff_summary.narrative }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Reusable Component Opportunities</h3>
+        <p class="text-xs text-zinc-500">Patterns repeated across multiple workflows in this org.</p>
+      </div>
+      <div class="p-5">
+        <p *ngIf="patterns().length === 0" class="text-sm text-zinc-400 py-4 text-center">No repeated patterns found yet.</p>
+        <div *ngIf="patterns().length > 0" class="space-y-3">
+          <div *ngFor="let pattern of patterns()" class="border border-zinc-100 rounded-md p-3">
+            <div class="flex items-center justify-between mb-1 gap-2">
+              <div class="flex items-center gap-1.5">
+                <span *ngIf="pattern.pattern_signature.candidate_type" class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 border border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700">{{ pattern.pattern_signature.candidate_type }}</span>
+                <app-badge status="analyzed" [label]="pattern.pattern_signature.pattern_name ?? 'Reusable candidate'"></app-badge>
+                <span *ngIf="pattern.pattern_signature.match_type === 'semantic'" title="Found by an LLM judging functionally-similar (not byte-identical) jobs as the same pattern" class="flex items-center gap-1 text-xs text-violet-600">
+                  <lucide-angular [img]="icons.Sparkles" [size]="11"></lucide-angular> AI-detected
+                </span>
+              </div>
+              <span class="text-xs text-zinc-400 shrink-0">{{ pattern.occurrence_count }} occurrences</span>
+            </div>
+            <p class="text-xs text-zinc-600 font-mono">{{ pattern.pattern_signature.components.join(', ') }}</p>
+            <p class="text-xs text-zinc-400 mt-1 truncate">e.g. {{ pattern.example_workflow_files.slice(0, 3).join(', ') }}</p>
+            <div *ngIf="pattern.pattern_signature.draft_template_yaml" class="mt-2">
+              <button (click)="toggleDraft(pattern.id)" class="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium">
+                <lucide-angular [img]="expandedDraft() === pattern.id ? icons.ChevronDown : icons.ChevronRight" [size]="12"></lucide-angular>
+                {{ expandedDraft() === pattern.id ? 'Hide' : 'View' }} drafted reusable-workflow YAML
+              </button>
+              <pre *ngIf="expandedDraft() === pattern.id" class="mt-2 text-xs font-mono bg-zinc-50 border border-zinc-100 rounded-md p-3 overflow-x-auto whitespace-pre">{{ pattern.pattern_signature.draft_template_yaml }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

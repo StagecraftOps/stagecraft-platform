@@ -1,0 +1,44 @@
+namespace: stagecraft
+nameOverride: ""
+
+image:
+  repository: yourregistry/stagecraft-mcp
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 2
+containerPort: 8010
+
+# ClusterIP only — called in-cluster over SSE by stagecraft-worker, never
+# exposed externally, so no ingress here.
+service:
+  enabled: true
+  port: 8010
+  targetPort: 8010
+
+# No AWS IAM needs — this service only calls the GitHub API and
+# stagecraft-api's internal HTTP endpoint (see stagecraft-infra's README).
+serviceAccount:
+  create: true
+  roleArn: ""
+
+# Populates the stagecraft-mcp-secrets Kubernetes Secret from AWS Secrets
+# Manager via the External Secrets Operator (see the umbrella chart's
+# clustersecretstore.yaml).
+externalSecret:
+  enabled: true
+  storeName: stagecraft
+  awsSecretName: stagecraft-mcp-secrets
+  refreshInterval: 1h
+
+env:
+  MCP_HOST: "0.0.0.0"
+  MCP_PORT: "8010"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

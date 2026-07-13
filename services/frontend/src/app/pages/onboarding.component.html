@@ -1,0 +1,253 @@
+<div class="p-8 max-w-2xl mx-auto">
+  <div class="bg-white border border-zinc-200 rounded-xl shadow-sm dark:bg-zinc-900 dark:border-zinc-800 overflow-hidden">
+    <div class="p-6 pb-0">
+      <app-page-header title="Onboarding" description="Connect your GitHub organization and set up StageCraft governance."></app-page-header>
+
+      <!-- Step indicator -->
+      <div class="flex items-center mb-6">
+        <ng-container *ngFor="let step of steps; let i = index; let last = last">
+          <button
+            type="button"
+            (click)="goToStep(i)"
+            class="flex flex-col items-center gap-2 flex-shrink-0"
+            [disabled]="i > currentStep()"
+          >
+            <div
+              class="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border transition-colors"
+              [ngClass]="i === currentStep()
+                ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
+                : i < currentStep()
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                  : 'bg-zinc-100 text-zinc-400 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:border-zinc-700'"
+            >
+              <lucide-angular *ngIf="i < currentStep()" [img]="icons.CheckCircle2" [size]="15"></lucide-angular>
+              <span *ngIf="i >= currentStep()">{{ i + 1 }}</span>
+            </div>
+            <span
+              class="text-xs font-medium whitespace-nowrap"
+              [ngClass]="i === currentStep() ? 'text-amber-700 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400'"
+            >{{ step.label }}</span>
+          </button>
+          <div *ngIf="!last" class="flex-1 h-px mx-2 bg-zinc-200 dark:bg-zinc-800"></div>
+        </ng-container>
+      </div>
+
+      <!-- Guide line for the active step -->
+      <div class="flex items-start gap-2 mb-6 px-3 py-2.5 bg-amber-50 border border-amber-100 rounded-lg dark:bg-amber-500/5 dark:border-amber-500/10">
+        <lucide-angular [img]="icons.Info" [size]="14" class="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"></lucide-angular>
+        <p class="text-xs text-amber-800 dark:text-amber-300">{{ steps[currentStep()].guide }}</p>
+      </div>
+    </div>
+
+    <!-- Content panel -->
+    <div class="border-t border-zinc-100 dark:border-zinc-800">
+      <div class="p-6 min-h-[120px] flex flex-col justify-center">
+      <!-- Step 1: Connect -->
+      <ng-container *ngIf="currentStep() === 0">
+        <div *ngIf="isLoadingOrgs()" class="h-24 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+
+        <div *ngIf="!isLoadingOrgs() && !hasOrg()" class="text-center py-8">
+          <lucide-angular [img]="icons.Github" [size]="28" class="mx-auto text-zinc-400 mb-3"></lucide-angular>
+          <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 mb-1">Connect your GitHub organization</h3>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-5 max-w-sm mx-auto">
+            Install the StageCraft GitHub App on your organization to begin governance onboarding.
+          </p>
+          <button
+            (click)="install()"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+          >
+            <lucide-angular [img]="icons.Github" [size]="15"></lucide-angular>
+            Install GitHub App
+          </button>
+        </div>
+
+        <div *ngIf="!isLoadingOrgs() && hasOrg()" class="flex items-center gap-3 p-4 bg-zinc-50 border border-zinc-100 rounded-lg dark:bg-zinc-800/50 dark:border-zinc-800">
+          <img *ngIf="org.orgs()[0].avatar_url" [src]="org.orgs()[0].avatar_url" [alt]="org.orgs()[0].login" width="36" height="36" class="rounded-full" />
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100 truncate">{{ org.orgs()[0].name || org.orgs()[0].login }}</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">Connected &#183; &#64;{{ org.orgs()[0].login }}</p>
+          </div>
+          <lucide-angular [img]="icons.CheckCircle2" [size]="18" class="text-emerald-500"></lucide-angular>
+        </div>
+      </ng-container>
+
+      <!-- Step 2: Select Scope -->
+      <ng-container *ngIf="currentStep() === 1">
+        <div *ngIf="isLoadingRepos()" class="space-y-2">
+          <div class="h-10 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+          <div class="h-10 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+          <div class="h-10 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+        </div>
+
+        <div *ngIf="repoError()" class="text-sm text-rose-600 dark:text-rose-400 mb-3">{{ repoError() }}</div>
+
+        <div *ngIf="!isLoadingRepos() && repos().length > 0">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ activeRepoCount() }} of {{ repos().length }} repositories selected</p>
+            <div class="flex items-center gap-2">
+              <button (click)="selectAll()" class="text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline">Select all</button>
+              <span class="text-zinc-300 dark:text-zinc-700">&#183;</span>
+              <button (click)="selectNone()" class="text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline">Select none</button>
+            </div>
+          </div>
+          <div class="max-h-96 overflow-y-auto border border-zinc-100 dark:border-zinc-800 rounded-lg divide-y divide-zinc-100 dark:divide-zinc-800">
+            <label
+              *ngFor="let repo of repos()"
+              class="flex items-center gap-3 p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                [checked]="selectedRepos().has(repo.name)"
+                (change)="toggleRepo(repo.name)"
+                class="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 text-amber-500 focus:ring-amber-500"
+              />
+              <span class="flex-1 text-sm text-zinc-800 dark:text-zinc-100 truncate">{{ repo.name }}</span>
+              <span
+                class="text-[11px] px-2 py-0.5 rounded-full border"
+                [ngClass]="repo.private
+                  ? 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'"
+              >{{ repo.private ? 'private' : 'public' }}</span>
+              <span *ngIf="repo.language" class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                {{ repo.language }}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div *ngIf="!isLoadingRepos() && repos().length === 0 && !repoError()" class="text-center py-8 text-zinc-400">
+          <p class="text-sm">No repositories found for this organization.</p>
+        </div>
+      </ng-container>
+
+      <!-- Step 3: Templates -->
+      <ng-container *ngIf="currentStep() === 2">
+        <div *ngIf="isLoadingTemplates()" class="h-24 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+
+        <div *ngIf="!isLoadingTemplates()">
+          <div class="flex items-center gap-2 mb-4">
+            <lucide-angular [img]="icons.Layers" [size]="16" class="text-amber-500"></lucide-angular>
+            <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ templates().length }} registered workflow template(s)</p>
+          </div>
+
+          <div *ngIf="templates().length > 0" class="space-y-2 mb-4">
+            <div *ngFor="let t of templates()" class="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-100 rounded-lg dark:bg-zinc-800/50 dark:border-zinc-800">
+              <span class="text-sm text-zinc-800 dark:text-zinc-100">{{ t.name }}</span>
+              <span class="text-xs text-zinc-500 dark:text-zinc-400">Updated {{ t.updated_at | slice:0:10 }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="templates().length === 0" class="text-center py-6 text-zinc-400 mb-4">
+            <p class="text-sm">No templates registered yet.</p>
+          </div>
+
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">
+            Manage templates on the
+            <a routerLink="/standardization" class="text-amber-600 dark:text-amber-400 hover:underline">Standardization page</a>.
+          </p>
+        </div>
+      </ng-container>
+
+      <!-- Step 4: Standards -->
+      <ng-container *ngIf="currentStep() === 3">
+        <div *ngIf="isLoadingStandards()" class="h-24 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+
+        <div *ngIf="!isLoadingStandards()" class="space-y-4">
+          <div class="flex items-center gap-2">
+            <lucide-angular [img]="icons.Building2" [size]="16" class="text-amber-500"></lucide-angular>
+            <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              {{ contextedActiveCount() }} of {{ activeRepoCount() }} active repositories have Application Context configured
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <lucide-angular [img]="icons.ShieldCheck" [size]="16" class="text-amber-500"></lucide-angular>
+            <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              {{ governanceDocs().length }} governance document(s) uploaded
+            </p>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">
+            Application Context and Governance configuration are opt-in per repo. You can complete these later.
+          </p>
+          <div class="flex items-center gap-4 pt-2">
+            <a routerLink="/application-context" class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline">
+              Application Context <lucide-angular [img]="icons.ExternalLink" [size]="12"></lucide-angular>
+            </a>
+            <a routerLink="/governance" class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline">
+              Governance <lucide-angular [img]="icons.ExternalLink" [size]="12"></lucide-angular>
+            </a>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Step 5: Analysis -->
+      <ng-container *ngIf="currentStep() === 4">
+        <div *ngIf="!progress()" class="h-24 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg animate-pulse"></div>
+
+        <div *ngIf="progress() as p">
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">Estate discovery &amp; sync progress</p>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ p.completed }} / {{ p.total }}</p>
+            </div>
+            <div class="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                class="h-full bg-amber-500 transition-all duration-500"
+                [style.width.%]="p.total > 0 ? (p.completed / p.total) * 100 : 0"
+              ></div>
+            </div>
+          </div>
+
+          <div class="max-h-80 overflow-y-auto border border-zinc-100 dark:border-zinc-800 rounded-lg divide-y divide-zinc-100 dark:divide-zinc-800">
+            <div
+              *ngFor="let r of p.repos"
+              class="flex items-center gap-3 p-3"
+              [title]="r.error || ''"
+            >
+              <span class="flex-1 text-sm text-zinc-800 dark:text-zinc-100 truncate">{{ r.repo_name }}</span>
+              <span *ngIf="r.status === 'completed'" class="text-xs text-zinc-500 dark:text-zinc-400">{{ r.runs_synced }} runs</span>
+              <span
+                class="text-[11px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1"
+                [ngClass]="statusClasses(r.status)"
+              >
+                <lucide-angular *ngIf="r.status === 'syncing'" [img]="icons.Loader2" [size]="10" class="animate-spin"></lucide-angular>
+                <lucide-angular *ngIf="r.status === 'failed'" [img]="icons.XCircle" [size]="10"></lucide-angular>
+                <lucide-angular *ngIf="r.status === 'completed'" [img]="icons.CheckCircle2" [size]="10"></lucide-angular>
+                <lucide-angular *ngIf="r.status === 'pending'" [img]="icons.Circle" [size]="10"></lucide-angular>
+                {{ r.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      </div>
+
+      <!-- Footer nav -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-zinc-100 dark:border-zinc-800">
+        <button
+          (click)="back()"
+          [disabled]="currentStep() === 0"
+          class="px-4 py-2 text-sm font-medium rounded-md text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+        >
+          Back
+        </button>
+
+        <button
+          *ngIf="currentStep() < steps.length - 1"
+          (click)="next()"
+          [disabled]="currentStep() === 0 && !hasOrg()"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {{ currentStep() === 1 && savingScope() ? 'Saving...' : 'Next' }}
+        </button>
+
+        <a
+          *ngIf="currentStep() === steps.length - 1"
+          routerLink="/dashboard"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+        >
+          Finish
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

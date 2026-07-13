@@ -1,0 +1,5 @@
+apiVersion: v2
+name: common
+description: Shared Deployment/Service/ConfigMap/ServiceAccount templates for all Stagecraft services
+type: library
+version: 0.1.0

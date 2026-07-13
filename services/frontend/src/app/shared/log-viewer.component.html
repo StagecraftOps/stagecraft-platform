@@ -1,0 +1,35 @@
+<div class="rounded-lg overflow-hidden border border-zinc-800">
+  <div class="flex items-center gap-2 bg-zinc-800 px-3 py-2">
+    <div class="flex gap-1.5">
+      <span class="w-3 h-3 rounded-full bg-rose-400"></span>
+      <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+      <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+    </div>
+    <div class="flex items-center gap-1.5 ml-3 flex-1 max-w-xs bg-zinc-900 rounded px-2 py-1">
+      <lucide-angular [img]="icons.Search" [size]="12" class="text-zinc-500"></lucide-angular>
+      <input [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Filter lines…" class="bg-transparent text-xs text-zinc-200 placeholder-zinc-500 outline-none w-full" />
+    </div>
+    <span class="text-xs text-zinc-500 tabular-nums">{{ filtered().length }} / {{ lines().length }} lines</span>
+    <button (click)="copy()" class="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-100 transition-colors px-2 py-1">
+      <lucide-angular [img]="copied() ? icons.Check : icons.Copy" [size]="12"></lucide-angular>
+      {{ copied() ? 'Copied' : 'Copy' }}
+    </button>
+    <button (click)="download()" class="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-100 transition-colors px-2 py-1">
+      <lucide-angular [img]="icons.Download" [size]="12"></lucide-angular>
+      Download
+    </button>
+  </div>
+
+  <div class="bg-zinc-950 max-h-[520px] overflow-auto font-mono text-xs leading-relaxed">
+    <table class="w-full border-collapse">
+      <tbody>
+        <tr *ngFor="let l of filtered()" [ngClass]="isError(l.text) ? 'bg-rose-950/40' : isWarn(l.text) ? 'bg-amber-950/30' : isHeader(l.text) ? 'bg-zinc-800/50' : ''">
+          <td class="select-none text-right text-zinc-600 pr-3 pl-3 w-12 align-top sticky left-0">{{ l.n }}</td>
+          <td class="pr-4 whitespace-pre-wrap break-all" [ngClass]="isError(l.text) ? 'text-rose-300' : isWarn(l.text) ? 'text-amber-300' : isHeader(l.text) ? 'text-zinc-400 font-semibold' : 'text-zinc-300'">
+            {{ l.text || ' ' }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

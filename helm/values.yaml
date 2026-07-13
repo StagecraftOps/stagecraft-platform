@@ -1,0 +1,8 @@
+namespace: stagecraft
+
+externalSecrets:
+  enabled: true
+  storeName: stagecraft
+  region: us-east-1
+  serviceAccountName: external-secrets
+  serviceAccountNamespace: external-secrets

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: mcp
+description: Stagecraft MCP server (GitHub tools for the agent fleet)
+version: 0.1.0
+dependencies:
+  - name: common
+    version: 0.1.0
+    repository: "file://../../common"

@@ -1,0 +1,68 @@
+namespace: stagecraft
+nameOverride: ""
+
+image:
+  repository: yourregistry/stagecraft-frontend
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 2
+containerPort: 3000
+
+service:
+  enabled: true
+  port: 80
+  targetPort: 3000
+
+# No AWS IAM needs — the frontend never calls an AWS API directly.
+serviceAccount:
+  create: true
+  roleArn: ""
+
+# Populates the stagecraft-frontend-secrets Kubernetes Secret from AWS Secrets
+# Manager via the External Secrets Operator (see the umbrella chart's
+# clustersecretstore.yaml).
+externalSecret:
+  enabled: true
+  storeName: stagecraft
+  awsSecretName: stagecraft-frontend-secrets
+  refreshInterval: 1h
+
+env:
+  NODE_ENV: production
+  # Empty string = relative URLs — frontend and API share one ALB domain via
+  # path-based routing, so /api/v1/... resolves to the api service alongside it.
+  NEXT_PUBLIC_API_URL: ""
+  # No trailing slash — the frontend builds `${API_URL_INTERNAL}/api/v1/...`,
+  # and a trailing slash here produces a double slash (//api/v1/...) that the
+  # backend 404s, silently breaking server-side auth checks (the dashboard
+  # layout's /auth/me call) so no logged-in page ever renders.
+  API_URL_INTERNAL: http://stagecraft-api
+
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  groupName: stagecraft
+  host: stagecraft.ustpace.com
+  path: /

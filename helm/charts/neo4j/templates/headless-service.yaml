@@ -1,0 +1,20 @@
+{{/*
+Headless Service required by the StatefulSet's serviceName — clusterIP: None,
+no load-balancing, just DNS for the single pod. The actual client-facing Bolt
+endpoint other pods connect to is templates/service.yaml (common.service).
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "common.fullname" . }}-headless
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "common.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: bolt
+      port: 7687
+      targetPort: 7687

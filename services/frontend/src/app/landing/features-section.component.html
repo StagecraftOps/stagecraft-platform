@@ -1,0 +1,20 @@
+<section id="features" class="py-24 lg:py-32 bg-white">
+  <div class="max-w-7xl mx-auto px-6 lg:px-12">
+    <div class="mb-16 lg:mb-20">
+      <span class="inline-flex items-center gap-3 text-sm font-code text-zinc-400 mb-6">
+        <span class="w-8 h-px bg-zinc-300"></span>
+        What it does
+      </span>
+      <h2
+        [class]="'font-serif-display text-4xl lg:text-6xl tracking-tight text-zinc-900 transition-all duration-700 ' + (visible() ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4')"
+      >
+        Everything you need.
+        <br />
+        <span class="text-zinc-400">Nothing made up.</span>
+      </h2>
+    </div>
+    <div>
+      <app-feature-card *ngFor="let f of features; let i = index" [feature]="f" [index]="i"></app-feature-card>
+    </div>
+  </div>
+</section>

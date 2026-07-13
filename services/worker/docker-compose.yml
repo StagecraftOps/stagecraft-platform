@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: stagecraft-worker-postgres
+    environment:
+      POSTGRES_DB: stagecraft
+      POSTGRES_USER: stagecraft
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localpassword}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stagecraft"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: stagecraft-worker-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stagecraft-worker
+    environment:
+      DATABASE_URL: postgresql://stagecraft:${POSTGRES_PASSWORD:-localpassword}@postgres:5432/stagecraft
+      REDIS_URL: redis://redis:6379/0
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL:-}
+      BEDROCK_MODEL_ID: anthropic.claude-sonnet-4-6
+      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-change-in-prod}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stagecraft-consumer
+    entrypoint: ["python", "-m", "app.sqs_consumer"]
+    environment:
+      DATABASE_URL: postgresql://stagecraft:${POSTGRES_PASSWORD:-localpassword}@postgres:5432/stagecraft
+      REDIS_URL: redis://redis:6379/0
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL:-}
+      BEDROCK_MODEL_ID: anthropic.claude-sonnet-4-6
+      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-change-in-prod}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+networks:
+  default:
+    name: stagecraft-worker-network

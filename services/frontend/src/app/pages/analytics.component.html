@@ -1,0 +1,191 @@
+<div class="p-8">
+  <app-page-header eyebrow="Overview" title="Insights" description="Failure, remediation velocity and delivery-health signals across your estate.">
+    <!-- Suggested focus: one short AI-generated recommendation from the metrics below. -->
+    <div actions *ngIf="suggestionLoading() || suggestion()" class="border rounded-lg px-3.5 py-2.5 max-w-xs"
+      [ngClass]="{
+        'border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/30': suggestionSeverity() === 'critical',
+        'border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30': suggestionSeverity() === 'warning',
+        'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900': suggestionSeverity() === 'ok'
+      }">
+      <div class="flex items-center gap-1.5 mb-1">
+        <lucide-angular *ngIf="suggestionSeverity() !== 'ok'" [img]="icons.AlertTriangle" [size]="11" [ngClass]="suggestionSeverity() === 'critical' ? 'text-rose-600' : 'text-amber-600'"></lucide-angular>
+        <p class="text-[10px] font-medium uppercase tracking-wider" [ngClass]="suggestionSeverity() === 'critical' ? 'text-rose-600' : suggestionSeverity() === 'warning' ? 'text-amber-600' : 'text-zinc-400'">Suggested focus</p>
+      </div>
+      <div *ngIf="suggestionLoading()" class="h-3.5 w-32 bg-zinc-100 dark:bg-zinc-800 rounded animate-pulse"></div>
+      <p *ngIf="!suggestionLoading() && suggestion()" class="text-xs leading-snug" [ngClass]="suggestionSeverity() === 'critical' ? 'text-rose-800 dark:text-rose-300 font-medium' : suggestionSeverity() === 'warning' ? 'text-amber-800 dark:text-amber-300' : 'text-zinc-700 dark:text-zinc-300'">{{ suggestion() }}</p>
+    </div>
+  </app-page-header>
+
+  <div *ngIf="error()" class="flex items-center gap-3 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-4 mb-6">
+    <lucide-angular [img]="icons.AlertCircle" [size]="16"></lucide-angular>
+    <p class="text-sm">Failed to load insights data.</p>
+  </div>
+
+  <!-- Headline KPIs: failure + remediation velocity -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <div class="flex items-start justify-between">
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">Failure Rate</p>
+          <p class="mt-2 text-2xl font-bold text-zinc-800 tabular-nums">{{ completed() ? (failurePct() | number: '1.1-1') + '%' : '—' }}</p>
+          <p class="text-[11px] text-zinc-400 mt-1">of {{ completed().toLocaleString() }} completed runs</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-rose-50">
+          <lucide-angular [img]="icons.AlertCircle" [size]="20" class="text-rose-600"></lucide-angular>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <div class="flex items-start justify-between">
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">MTTR</p>
+          <p class="mt-2 text-2xl font-bold text-zinc-800 tabular-nums">{{ formatDuration(analytics()?.mttr_seconds) }}</p>
+          <p class="text-[11px] text-zinc-400 mt-1">run failure → fix PR raised</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-amber-50">
+          <lucide-angular [img]="icons.Timer" [size]="20" class="text-amber-600"></lucide-angular>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <div class="flex items-start justify-between">
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">MTTD</p>
+          <p class="mt-2 text-2xl font-bold text-zinc-800 tabular-nums">{{ formatDuration(analytics()?.mttd_seconds) }}</p>
+          <p class="text-[11px] text-zinc-400 mt-1">failure → analysis started</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-sky-50">
+          <lucide-angular [img]="icons.Search" [size]="20" class="text-sky-600"></lucide-angular>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <div class="flex items-start justify-between">
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">PRs Raised</p>
+          <p class="mt-2 text-2xl font-bold text-zinc-800 tabular-nums">{{ analytics()?.remediations_raised ?? 0 }}</p>
+          <p class="text-[11px] text-zinc-400 mt-1">auto-remediation fixes</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-amber-50">
+          <lucide-angular [img]="icons.Bot" [size]="20" class="text-amber-600"></lucide-angular>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary signal strip -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">Total Runs</p>
+      <p class="mt-2 text-xl font-bold text-zinc-800 tabular-nums">{{ (analytics()?.total_runs ?? 0).toLocaleString() }}</p>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">Completed Runs</p>
+      <p class="mt-2 text-xl font-bold text-zinc-800 tabular-nums">{{ completed().toLocaleString() }}</p>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">Run Frequency</p>
+      <p class="mt-2 text-xl font-bold text-zinc-800 tabular-nums">{{ (analytics()?.runs_per_day ?? 0) }}<span class="text-sm font-medium text-zinc-400">/day</span></p>
+      <p class="text-[11px] text-zinc-400 mt-1">30-day average</p>
+    </div>
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm p-5">
+      <div class="flex items-start justify-between">
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider">Open Vulnerabilities</p>
+          <p class="mt-2 text-xl font-bold text-zinc-800 tabular-nums">{{ analytics()?.open_vulns_total ?? 0 }}</p>
+          <div *ngIf="severityEntries().length" class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            <span *ngFor="let e of severityEntries()" class="flex items-center gap-1 text-[11px] text-zinc-500">
+              <span class="h-1.5 w-1.5 rounded-full" [ngClass]="severityDot(e.sev)"></span>{{ e.sev }} {{ e.count }}
+            </span>
+          </div>
+        </div>
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-rose-50">
+          <lucide-angular [img]="icons.Bug" [size]="20" class="text-rose-600"></lucide-angular>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Run Trend — Last 30 Days</h3>
+      </div>
+      <div class="p-5">
+        <div *ngIf="!analytics()?.run_trend?.length" class="h-64 flex items-center justify-center text-zinc-400 text-sm">No trend data available yet.</div>
+        <app-line-chart *ngIf="analytics()?.run_trend?.length" [data]="analytics()!.run_trend" class="block h-64"></app-line-chart>
+      </div>
+    </div>
+
+    <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+      <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+        <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Top Failing Repositories</h3>
+      </div>
+      <div class="p-5">
+        <div *ngIf="topFailingBars().length === 0" class="h-64 flex items-center justify-center text-zinc-400 text-sm">
+          <div class="text-center">
+            <lucide-angular [img]="icons.Activity" [size]="32" class="text-emerald-300 mx-auto mb-3"></lucide-angular>
+            <p>No failing repos. Great work!</p>
+          </div>
+        </div>
+        <app-bar-chart *ngIf="topFailingBars().length > 0" [data]="topFailingBars()"></app-bar-chart>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-zinc-200 rounded-lg shadow-sm mb-6">
+    <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+      <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Top Failing Workflows</h3>
+    </div>
+    <div class="p-5">
+      <div *ngIf="topFailingWorkflowBars().length === 0" class="h-48 flex items-center justify-center text-zinc-400 text-sm">No failing workflows.</div>
+      <app-bar-chart *ngIf="topFailingWorkflowBars().length > 0" [data]="topFailingWorkflowBars()"></app-bar-chart>
+    </div>
+  </div>
+
+  <div class="bg-white border border-zinc-200 rounded-lg shadow-sm mb-6">
+    <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+      <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Run Outcomes ({{ completed().toLocaleString() }} completed)</h3>
+    </div>
+    <div class="p-5">
+      <p *ngIf="completed() === 0" class="text-sm text-zinc-400 py-2">No completed runs yet.</p>
+      <ng-container *ngIf="completed() > 0">
+        <div class="flex h-3 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div class="bg-rose-500" [style.width.%]="failurePct()"></div>
+          <div class="bg-emerald-500" [style.width.%]="successPct()"></div>
+          <div class="bg-zinc-300" [style.width.%]="otherPct()"></div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-6 text-xs text-zinc-500">
+          <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-rose-500"></span>Failure {{ failurePct() | number: '1.1-1' }}% ({{ analytics()?.failure_count ?? 0 }})</span>
+          <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Success {{ successPct() | number: '1.1-1' }}% ({{ analytics()?.success_count ?? 0 }})</span>
+          <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-zinc-300"></span>Other {{ otherPct() | number: '1.1-1' }}% ({{ analytics()?.other_count ?? 0 }})</span>
+        </div>
+        <p class="mt-2 text-[11px] text-zinc-400">"Other" = cancelled, skipped, timed-out or startup-failure runs. In-progress / queued runs are excluded from all rates.</p>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+    <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+      <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">AI Remediation</h3>
+    </div>
+    <div class="p-5">
+      <div class="flex flex-wrap items-center gap-8 py-4">
+        <div class="text-center">
+          <p class="text-3xl font-bold text-zinc-800 tabular-nums">{{ analytics()?.remediations_raised ?? 0 }}</p>
+          <p class="text-xs text-zinc-500 mt-1">PRs raised</p>
+        </div>
+        <div class="w-px h-12 bg-zinc-100"></div>
+        <div class="text-center">
+          <p class="text-3xl font-bold text-zinc-800 tabular-nums">{{ formatDuration(analytics()?.avg_analysis_seconds) }}</p>
+          <p class="text-xs text-zinc-500 mt-1">Avg. time to fix suggestion</p>
+        </div>
+        <div class="w-px h-12 bg-zinc-100"></div>
+        <div class="text-center">
+          <p class="text-3xl font-bold text-zinc-800 tabular-nums">{{ formatDuration(analytics()?.mttr_seconds) }}</p>
+          <p class="text-xs text-zinc-500 mt-1">MTTR (failure → PR)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

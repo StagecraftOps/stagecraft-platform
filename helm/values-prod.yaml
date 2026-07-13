@@ -1,0 +1,53 @@
+
+api:
+  replicaCount: 3
+  image:
+    repository: yampss/stagecraft-api
+    tag: latest
+  serviceAccount:
+    roleArn: "arn:aws:iam::870325637146:role/stagecraft-api"
+  env:
+    ENVIRONMENT: staging
+    FRONTEND_URL: http://k8s-stagecraft-1de7e348b3-1960332100.us-east-1.elb.amazonaws.com
+    GITHUB_REDIRECT_URI: http://k8s-stagecraft-1de7e348b3-1960332100.us-east-1.elb.amazonaws.com/api/auth/callback
+  ingress:
+    host: k8s-stagecraft-1de7e348b3-1960332100.us-east-1.elb.amazonaws.com
+
+worker:
+  image:
+    repository: yampss/stagecraft-worker
+    tag: latest
+  serviceAccount:
+    roleArn: "arn:aws:iam::870325637146:role/stagecraft-worker"
+  worker:
+    replicaCount: 3
+  consumer:
+    replicaCount: 2
+
+webhook:
+  replicaCount: 2
+  image:
+    repository: yampss/stagecraft-webhook
+    tag: latest
+  serviceAccount:
+    roleArn: "arn:aws:iam::870325637146:role/stagecraft-webhook"
+  ingress:
+    host: k8s-stagecraft-1de7e348b3-1960332100.us-east-1.elb.amazonaws.com
+    path: /webhooks
+
+frontend:
+  replicaCount: 3
+  image:
+    repository: yampss/stagecraft-frontend
+    tag: latest
+  ingress:
+    host: k8s-stagecraft-1de7e348b3-1960332100.us-east-1.elb.amazonaws.com
+
+mcp:
+
+  replicaCount: 1
+  image:
+    repository: yampss/stagecraft-mcp
+    tag: latest
+
+neo4j: {}

@@ -1,0 +1,245 @@
+<div class="p-8" *ngIf="!isLoading() && remediation() as rem">
+  <a routerLink="/remediation" class="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 mb-6 transition-colors">
+    <lucide-angular [img]="icons.ArrowLeft" [size]="14"></lucide-angular>
+    Back to Remediations
+  </a>
+
+  <div class="mb-8">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+        <lucide-angular [img]="icons.Bot" [size]="20" class="text-amber-600"></lucide-angular>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3 flex-wrap">
+          <h1 class="text-xl font-bold text-zinc-800">AI Analysis</h1>
+          <app-badge [status]="rem.status"></app-badge>
+        </div>
+        <div class="flex items-center gap-4 mt-1 flex-wrap">
+          <span class="text-sm text-zinc-500">
+            <span class="font-medium text-zinc-700">{{ rem.repo_name }}</span> · {{ rem.workflow_file }}
+          </span>
+          <span class="text-xs text-zinc-400">{{ formatRelativeTime(rem.created_at) }}</span>
+        </div>
+      </div>
+
+      <a *ngIf="isPrRaised() && rem.pr_url" [href]="rem.pr_url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+        <lucide-angular [img]="icons.GitPullRequest" [size]="14"></lucide-angular>
+        View PR #{{ rem.pr_number }}
+        <lucide-angular [img]="icons.ExternalLink" [size]="12"></lucide-angular>
+      </a>
+      <button *ngIf="canRaisePr()" (click)="raisePr()" [disabled]="raising()" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 disabled:opacity-50 transition-colors">
+        <lucide-angular *ngIf="raising()" [img]="icons.Loader2" [size]="14" class="animate-spin"></lucide-angular>
+        <lucide-angular *ngIf="!raising()" [img]="icons.GitPullRequest" [size]="14"></lucide-angular>
+        {{ raising() ? 'Creating PR…' : 'Raise PR' }}
+      </button>
+    </div>
+
+    <div *ngIf="raiseError()" class="flex items-center gap-2 mt-4 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3">
+      <lucide-angular [img]="icons.AlertCircle" [size]="14"></lucide-angular>
+      <p class="text-sm">{{ raiseError() }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+      <div *ngIf="rem.root_cause" class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+          <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Root Cause</h3>
+        </div>
+        <div class="p-5">
+          <div class="flex items-start gap-3 p-4 bg-rose-50 border border-rose-100 rounded-lg">
+            <lucide-angular [img]="icons.AlertCircle" [size]="16" class="text-rose-500 flex-shrink-0 mt-0.5"></lucide-angular>
+            <p class="text-sm text-rose-800 leading-relaxed">{{ rem.root_cause }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="hasResult() && rem.suggested_yaml" class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Suggested Fix</h3>
+            <div class="flex items-center gap-2">
+              <span *ngIf="rem.original_yaml && addedLineCount() > 0" class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">{{ addedLineCount() }} line{{ addedLineCount() !== 1 ? 's' : '' }} changed</span>
+              <span *ngIf="isAnalyzed()" class="text-xs text-zinc-400 bg-zinc-100 px-2 py-1 rounded">Review before raising PR</span>
+              <span *ngIf="isPrRaised()" class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">PR raised</span>
+            </div>
+          </div>
+        </div>
+        <div class="p-0">
+          <div class="bg-zinc-900 rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2.5 border-b border-zinc-700">
+              <div class="flex items-center gap-3">
+                <div class="flex gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-zinc-600"></span>
+                  <span class="w-3 h-3 rounded-full bg-zinc-600"></span>
+                  <span class="w-3 h-3 rounded-full bg-zinc-600"></span>
+                </div>
+                <span class="text-xs text-zinc-400 font-mono">{{ rem.workflow_file }}</span>
+              </div>
+              <button (click)="copyYaml()" class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors px-2 py-1 rounded">
+                <ng-container *ngIf="copied(); else notCopied">
+                  <lucide-angular [img]="icons.Check" [size]="12" class="text-emerald-400"></lucide-angular>
+                  <span class="text-emerald-400">Copied</span>
+                </ng-container>
+                <ng-template #notCopied>
+                  <lucide-angular [img]="icons.Copy" [size]="12"></lucide-angular>
+                  Copy
+                </ng-template>
+              </button>
+            </div>
+            <pre class="p-5 text-xs text-zinc-300 font-mono leading-relaxed overflow-x-auto max-h-[480px]"><code
+              ><ng-container *ngFor="let line of yamlDiff()"><span [class.bg-emerald-900]="line.kind === 'added'" [class.border-l-2]="line.kind === 'added'" [class.border-emerald-500]="line.kind === 'added'" [class.pl-2]="line.kind === 'added'" [class.-ml-2]="line.kind === 'added'" class="block">{{ line.text }}</span></ng-container></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="rem.likely_code_level" class="bg-white border border-zinc-200 rounded-lg shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
+        <div class="p-5">
+          <div class="flex items-start gap-3 p-4 bg-violet-50 border border-violet-200 rounded-lg dark:bg-violet-500/10 dark:border-violet-500/20">
+            <lucide-angular [img]="icons.Code2" [size]="16" class="text-violet-600 flex-shrink-0 mt-0.5"></lucide-angular>
+            <div>
+              <p class="text-sm font-medium text-violet-900 mb-1 dark:text-violet-300">Likely an application code issue, not a pipeline fix</p>
+              <p class="text-sm text-violet-800 leading-relaxed dark:text-violet-200">{{ rem.code_level_reasoning || 'This failure appears to stem from the application\'s own code or repository content, not the CI configuration -- no workflow YAML change applies here.' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="isAnalyzed() && !hasSuggestedYaml() && !rem.likely_code_level" class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="p-5">
+          <div class="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-lg">
+            <lucide-angular [img]="icons.AlertCircle" [size]="16" class="text-amber-500 flex-shrink-0 mt-0.5"></lucide-angular>
+            <div>
+              <p class="text-sm font-medium text-amber-900 mb-1">No YAML suggestion available</p>
+              <p class="text-sm text-amber-800 leading-relaxed">AI identified the root cause, but it did not produce a valid workflow YAML fix for this remediation.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="isPending() || isAnalyzing()" class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="p-5">
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mb-4">
+              <lucide-angular [img]="icons.Bot" [size]="22" class="text-amber-500 animate-pulse"></lucide-angular>
+            </div>
+            <p class="text-sm font-medium text-zinc-700 mb-1">Analyzing with AWS Bedrock…</p>
+            <p class="text-xs text-zinc-400">Anthropic's Sonnet model is reading the failure logs and generating a suggested fix.</p>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="isFailed() && !rem.likely_code_level" class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="p-5">
+          <div class="flex items-start gap-3 p-4 bg-rose-50 border border-rose-100 rounded-lg">
+            <lucide-angular [img]="icons.AlertCircle" [size]="16" class="text-rose-500 flex-shrink-0 mt-0.5"></lucide-angular>
+            <div>
+              <p class="text-sm font-medium text-rose-800 mb-1">Analysis failed</p>
+              <p *ngIf="rem.error_message" class="text-xs text-rose-700 font-mono">{{ rem.error_message }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+          <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Timeline</h3>
+        </div>
+        <div class="p-5">
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 bg-emerald-100 text-emerald-600">
+                <lucide-angular [img]="icons.AlertCircle" [size]="14"></lucide-angular>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-zinc-800">Failure detected</p>
+                <p class="text-xs text-zinc-500 mt-0.5">{{ formatDate(rem.created_at) }}</p>
+              </div>
+            </div>
+            <div class="w-px h-4 bg-zinc-200 ml-3.5"></div>
+            <div class="flex items-start gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" [ngClass]="(hasResult() || isFailed()) ? 'bg-emerald-100 text-emerald-600' : (isAnalyzing() ? 'bg-amber-100 text-amber-600' : 'bg-zinc-100 text-zinc-400')">
+                <lucide-angular *ngIf="!isAnalyzing()" [img]="icons.Bot" [size]="14"></lucide-angular>
+                <lucide-angular *ngIf="isAnalyzing()" [img]="icons.Loader2" [size]="14" class="animate-spin"></lucide-angular>
+              </div>
+              <div>
+                <p class="text-sm font-medium" [ngClass]="(hasResult() || isFailed()) ? 'text-zinc-800' : (isAnalyzing() ? 'text-amber-700' : 'text-zinc-400')">Bedrock analysis</p>
+              </div>
+            </div>
+            <div class="w-px h-4 bg-zinc-200 ml-3.5"></div>
+            <div class="flex items-start gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" [ngClass]="hasResult() ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'">
+                <lucide-angular [img]="icons.CheckCircle2" [size]="14"></lucide-angular>
+              </div>
+              <p class="text-sm font-medium" [ngClass]="hasResult() ? 'text-zinc-800' : 'text-zinc-400'">Suggested fix ready</p>
+            </div>
+            <div class="w-px h-4 bg-zinc-200 ml-3.5"></div>
+            <div class="flex items-start gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" [ngClass]="isPrRaised() ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'">
+                <lucide-angular [img]="icons.GitPullRequest" [size]="14"></lucide-angular>
+              </div>
+              <div>
+                <p class="text-sm font-medium" [ngClass]="isPrRaised() ? 'text-zinc-800' : 'text-zinc-400'">PR raised</p>
+                <p *ngIf="rem.pr_url" class="text-xs text-zinc-500 mt-0.5">#{{ rem.pr_number }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-zinc-200 rounded-lg shadow-sm">
+        <div class="flex flex-col space-y-1 p-5 border-b border-zinc-100">
+          <h3 class="text-sm font-semibold text-zinc-800 leading-none tracking-tight">Details</h3>
+        </div>
+        <div class="p-5">
+          <dl class="space-y-3">
+            <div>
+              <dt class="text-xs text-zinc-400 uppercase tracking-wider mb-0.5">Organization</dt>
+              <dd class="text-sm text-zinc-700 font-medium">{{ rem.org_login }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-zinc-400 uppercase tracking-wider mb-0.5">Repository</dt>
+              <dd class="text-sm text-zinc-700 font-medium">{{ rem.repo_name }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-zinc-400 uppercase tracking-wider mb-0.5">Workflow File</dt>
+              <dd class="text-xs text-zinc-600 font-mono bg-zinc-50 px-2 py-1 rounded">{{ rem.workflow_file }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-zinc-400 uppercase tracking-wider mb-0.5">
+                <lucide-angular [img]="icons.Clock" [size]="11" class="inline mr-1"></lucide-angular>
+                Created
+              </dt>
+              <dd class="text-sm text-zinc-700">{{ formatDate(rem.created_at) }}</dd>
+            </div>
+            <div *ngIf="isPrRaised() && rem.pr_number">
+              <dt class="text-xs text-zinc-400 uppercase tracking-wider mb-0.5">Pull Request</dt>
+              <dd>
+                <a [href]="rem.pr_url ?? '#'" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sm text-amber-600 hover:text-amber-700 font-medium">
+                  <lucide-angular [img]="icons.GitPullRequest" [size]="13"></lucide-angular>
+                  #{{ rem.pr_number }}
+                  <lucide-angular [img]="icons.ExternalLink" [size]="11"></lucide-angular>
+                </a>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="p-8" *ngIf="isLoading()">
+  <div class="h-6 w-48 bg-zinc-100 rounded animate-pulse mb-4"></div>
+  <div class="h-32 w-full bg-zinc-100 rounded animate-pulse mb-4"></div>
+  <div class="h-64 w-full bg-zinc-100 rounded animate-pulse"></div>
+</div>
+
+<div class="p-8" *ngIf="!isLoading() && error()">
+  <div class="flex items-center gap-3 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-4">
+    <lucide-angular [img]="icons.AlertCircle" [size]="18"></lucide-angular>
+    <p class="text-sm font-medium">Failed to load remediation details.</p>
+  </div>
+</div>

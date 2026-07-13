@@ -1,0 +1,8 @@
+apiVersion: v2
+name: neo4j
+description: Neo4j graph database backing the dependency/knowledge graphs and GraphRAG retrieval
+version: 0.1.0
+dependencies:
+  - name: common
+    version: 0.1.0
+    repository: "file://../../common"

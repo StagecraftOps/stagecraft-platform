@@ -1,0 +1,72 @@
+<section id="how-it-works" class="relative py-24 lg:py-32 bg-zinc-900 text-white overflow-hidden">
+  <div
+    class="absolute inset-0 opacity-[0.025] pointer-events-none"
+    style="background-image: repeating-linear-gradient(-45deg, transparent, transparent 40px, white 40px, white 41px)"
+  ></div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
+    <div class="mb-16 lg:mb-20">
+      <span class="inline-flex items-center gap-3 text-sm font-code text-white/40 mb-6">
+        <span class="w-8 h-px bg-white/20"></span>
+        How it works
+      </span>
+      <h2
+        [class]="'font-serif-display text-4xl lg:text-6xl tracking-tight transition-all duration-700 ' + (visible() ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4')"
+      >
+        Three steps.
+        <br />
+        <span class="text-white/40">No magic, no black boxes.</span>
+      </h2>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-20">
+      <div class="space-y-0">
+        <button
+          *ngFor="let step of steps; let i = index"
+          type="button"
+          (click)="setActiveStep(i)"
+          [class]="'w-full text-left py-8 border-b border-white/10 transition-all duration-500 group ' + (activeStep() === i ? 'opacity-100' : 'opacity-35 hover:opacity-60')"
+        >
+          <div class="flex items-start gap-6">
+            <span class="font-serif-display text-3xl text-white/25">{{ step.number }}</span>
+            <div class="flex-1">
+              <h3 class="font-serif-display text-2xl lg:text-3xl mb-3 group-hover:translate-x-1.5 transition-transform duration-300">
+                {{ step.title }}
+              </h3>
+              <p class="text-white/55 leading-relaxed text-sm lg:text-base">
+                {{ step.description }}
+              </p>
+              <div *ngIf="activeStep() === i" class="mt-4 h-px bg-white/15 overflow-hidden">
+                <div class="h-full bg-amber-400 w-0" style="animation: progress 5s linear forwards"></div>
+              </div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="lg:sticky lg:top-32 self-start">
+        <div class="border border-white/10 rounded-lg overflow-hidden">
+          <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 rounded-full bg-white/15"></div>
+              <div class="w-3 h-3 rounded-full bg-white/15"></div>
+              <div class="w-3 h-3 rounded-full bg-white/15"></div>
+            </div>
+            <span class="text-xs font-code text-white/35">example.json</span>
+          </div>
+          <div class="p-6 font-code text-sm min-h-[320px] overflow-x-auto">
+            <pre class="text-white/65 whitespace-pre-wrap leading-relaxed"><div
+              *ngFor="let line of activeLines(); let li = index"
+              class="code-line-reveal leading-loose"
+              [style.animation-delay.ms]="li * 60"
+            ><span class="text-white/20 select-none w-6 inline-block text-right mr-3">{{ li + 1 }}</span><span [class]="isComment(line) ? 'text-amber-400/70' : ''">{{ line || ' ' }}</span></div></pre>
+          </div>
+          <div class="px-5 py-3.5 border-t border-white/10 flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-code text-white/35">Stagecraft ready</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

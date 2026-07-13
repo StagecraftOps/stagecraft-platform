@@ -1,0 +1,96 @@
+<aside class="w-60 h-screen flex flex-col bg-zinc-100 border-r border-zinc-300 dark:bg-zinc-900 dark:border-zinc-800 flex-shrink-0">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+    <span class="text-zinc-900 dark:text-zinc-100 tracking-tight" style="font-family: 'Open Sans', sans-serif; font-size: 1.25rem;">
+      Stagecraft
+    </span>
+    <button
+      (click)="themeSvc.toggle()"
+      aria-label="Toggle theme"
+      class="flex items-center justify-center w-8 h-8 rounded-md text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
+    >
+      <lucide-angular [img]="themeSvc.theme() === 'dark' ? icons.Sun : icons.Moon" [size]="16"></lucide-angular>
+    </button>
+  </div>
+
+  <div class="px-3 pt-3" *ngIf="org.orgs().length > 0">
+    <select
+      *ngIf="org.orgs().length > 1; else singleOrg"
+      [value]="org.currentOrg()"
+      (change)="onOrgChange($event)"
+      class="w-full text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+    >
+      <option *ngFor="let o of org.orgs()" [value]="o.login">{{ o.name || o.login }}</option>
+    </select>
+    <ng-template #singleOrg>
+      <div class="flex items-center gap-2 px-3 py-2 rounded-md bg-white dark:bg-zinc-800/50 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-transparent">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+        <span class="truncate">{{ org.orgs()[0].name || org.orgs()[0].login }}</span>
+      </div>
+    </ng-template>
+
+    <!-- Application scope switcher -->
+    <select
+      *ngIf="appSvc.applications().length > 0"
+      [value]="appSvc.currentApplicationId()"
+      (change)="onAppChange($event)"
+      class="mt-2 w-full text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
+      title="Application scope"
+    >
+      <option value="">All applications</option>
+      <option *ngFor="let a of appSvc.applications()" [value]="a.id">{{ a.name }}</option>
+    </select>
+  </div>
+
+  <nav class="flex-1 px-3 py-4 overflow-y-auto">
+    <div *ngFor="let group of navSections" class="mb-4">
+      <p class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">
+        {{ group.section }}
+      </p>
+      <div class="space-y-0.5">
+        <a
+          *ngFor="let item of group.items"
+          [routerLink]="item.href"
+          routerLinkActive="bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400 border-l-2 border-amber-500 rounded-l-none pl-[calc(0.75rem-2px)]"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+        >
+          <lucide-angular [img]="item.icon" [size]="16" class="flex-shrink-0 text-zinc-500 dark:text-zinc-500"></lucide-angular>
+          <span class="flex-1">{{ item.label }}</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="px-3 py-2 border-t border-zinc-200 dark:border-zinc-800">
+    <a
+      [routerLink]="settingsItem.href"
+      routerLinkActive="bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400 border-l-2 border-amber-500 rounded-l-none pl-[calc(0.75rem-2px)]"
+      class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+    >
+      <lucide-angular [img]="icons.Settings" [size]="16" class="flex-shrink-0 text-zinc-500 dark:text-zinc-500"></lucide-angular>
+      <span class="flex-1">{{ settingsItem.label }}</span>
+    </a>
+  </div>
+
+  <div class="border-t border-zinc-200 dark:border-zinc-800 p-4" *ngIf="user">
+    <div class="flex items-center gap-3">
+      <img *ngIf="user.avatar_url; else initial" [src]="user.avatar_url" [alt]="user.login" width="32" height="32" class="rounded-full flex-shrink-0" />
+      <ng-template #initial>
+        <div class="w-8 h-8 rounded-full bg-zinc-300 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0">
+          <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">{{ user.login[0]?.toUpperCase() }}</span>
+        </div>
+      </ng-template>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">{{ user.name || user.login }}</p>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">&#64;{{ user.login }}</p>
+      </div>
+    </div>
+    <button
+      (click)="logout()"
+      class="mt-3 flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
+    >
+      <lucide-angular [img]="icons.LogOut" [size]="14"></lucide-angular>
+      Disconnect
+    </button>
+  </div>
+</aside>

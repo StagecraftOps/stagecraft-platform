@@ -1,0 +1,9 @@
+{{- $ctx := deepCopy . }}
+{{- $_ := set $ctx.Values "componentSuffix" "" }}
+{{- $_ := set $ctx.Values "replicaCount" .Values.worker.replicaCount }}
+{{- $_ := set $ctx.Values "command" .Values.worker.command }}
+{{- $_ := set $ctx.Values "containerPort" .Values.worker.containerPort }}
+{{- $_ := set $ctx.Values "livenessProbe" .Values.worker.livenessProbe }}
+{{- $_ := set $ctx.Values "readinessProbe" .Values.worker.readinessProbe }}
+{{- $_ := set $ctx.Values "resources" .Values.worker.resources }}
+{{ include "common.deployment" $ctx }}

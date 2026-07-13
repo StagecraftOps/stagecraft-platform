@@ -1,0 +1,10 @@
+# service dependency graph for CI orchestration
+# schema: services: <name> -> {depends_on: [<name>, ...]}
+services:
+  webhook: {}
+  api: {}
+  mcp: {}
+  worker:
+    depends_on: ["mcp"]
+  frontend:
+    depends_on: ["api"]
