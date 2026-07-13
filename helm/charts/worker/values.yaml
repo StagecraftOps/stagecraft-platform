@@ -28,6 +28,8 @@ env:
   USE_MULTI_AGENT: "true"
   USE_MCP_TOOLS: "true"
   FRONTEND_URL: https://stagecraft.example.com
+  GRAPH_BACKEND: neo4j
+  GRAPH_DUAL_WRITE_NEO4J: "true"
 
 worker:
   replicaCount: 2

@@ -30,6 +30,7 @@ env:
   FRONTEND_URL: https://stagecraft.example.com
   GITHUB_REDIRECT_URI: https://stagecraft.example.com/api/auth/callback
   BEDROCK_MODEL_ID: anthropic.claude-sonnet-4-6
+  GRAPH_BACKEND: neo4j
 
 livenessProbe:
   httpGet:
