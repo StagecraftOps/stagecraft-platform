@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stagecraft
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # replace with this repo's URL once pushed to your company GitHub org
+    repoURL: https://github.com/<your-org>/stagecraft-platform.git
+    targetRevision: main
+    path: helm
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stagecraft
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
